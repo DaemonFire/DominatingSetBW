@@ -1,5 +1,7 @@
 #include "../include/algorithms.h"
 #include "../include/treeprimitives.h"
+
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -11,7 +13,7 @@
 
 int firstpreprocess(graph g, dectree t, int choiceofson){
 
-	if((t.left==NULL)||(t.right==NULL){
+	if((t.left==NULL)||(t.right==NULL)){
 		return EXIT_FAILURE;
 	}
 
@@ -21,7 +23,7 @@ int firstpreprocess(graph g, dectree t, int choiceofson){
 	int *verticesright=(int*)malloc(g.size*sizeof(int));
 	
 	if (choiceofson==0){
-		nleft=int getallleafs(*(t.left), *verticesleft);
+		nleft=getallleafs(*((dectree*)(t.left)), verticesleft);
 		nright=g.size-nleft;
 		
 		int i=0;
@@ -49,7 +51,7 @@ int firstpreprocess(graph g, dectree t, int choiceofson){
 	}
 
 	else if (choiceofson==1){
-		nright=int getallleafs(*(t.right), *verticesright);
+		nright=getallleafs(*((dectree*)(t.right)), verticesright);
 		nleft=g.size-nright;
 		
 		int i=0;
@@ -66,7 +68,7 @@ int firstpreprocess(graph g, dectree t, int choiceofson){
 			if (inright==0){
 				verticesleft[k]=i;
 				k++;
-				if (k==nkeft-1)
+				if (k==nleft-1)
 					break;
 			}
 		}
@@ -77,8 +79,8 @@ int firstpreprocess(graph g, dectree t, int choiceofson){
 
 	int *matrixwrtcut = (int*)malloc(nleft*nright*sizeof(int));
 		
-	for (i=0;i<nleft;i++){
-		for (j=0;j<nright;j++){
+	for (int i=0;i<nleft;i++){
+		for (int j=0;j<nright;j++){
 			matrixwrtcut[i*nleft+j]=g.matrix[verticesleft[i]*g.size+verticesright[j]];
 		}
 	}

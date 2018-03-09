@@ -2,7 +2,7 @@
 #define _GENERATEDATA_
 
 #include "../include/datarepresentation.h"
-
+#include <stdio.h>
 
 	graph generategraph (int nbpoint, int xrange, int yrange, int threshold);
 	
@@ -14,8 +14,8 @@
 
 	int computeSizeFromFile (char* path);
 
-	//dectree loadtree (char* path);
+	dectree loadtree (char* path);
 
-	//dectree *lookTree (char *path, char *node)
+	dectree* lookTree (FILE *f, char *node);
 
 #endif

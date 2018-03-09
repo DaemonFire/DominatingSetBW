@@ -14,8 +14,7 @@ int main (int argc, char** argv){
 	//graph g = generategraph (10,1000,1000,450);
 	//storegraph(g, "straight.points");
 	graph g=loadgraph("straight.points", 180);
-	dectree t;
-	//dectree t=loadtree("straight.tree");
+	dectree t=loadtree("straight.tree");
 
 	generatePlotFile (t, g);
 
