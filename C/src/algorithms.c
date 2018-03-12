@@ -19,13 +19,16 @@ int firstpreprocess(graph g, dectree t, int choiceofson){
 
 	int nleft=0;
 	int nright=0;
-	int *verticesleft=(int*)malloc(g.size*sizeof(int));
-	int *verticesright=(int*)malloc(g.size*sizeof(int));
-	
+	int *verticesleft=NULL;
+	int *verticesright=NULL;
+
 	if (choiceofson==0){
-		nleft=getallleafs(*((dectree*)(t.left)), verticesleft);
+		nleft=getnumberofleafs (*(t.left));
+		verticesleft=(int*)malloc(nleft*sizeof(int));
+		getallleafs(*(t.left), verticesleft);
 		nright=g.size-nleft;
-		
+		verticesright=(int*)malloc(nright*sizeof(int));
+
 		int i=0;
 		int j=0;
 		int k=0;
@@ -40,19 +43,21 @@ int firstpreprocess(graph g, dectree t, int choiceofson){
 			if (inleft==0){
 				verticesright[k]=i;
 				k++;
-				if (k==nright-1)
+				if (k==nright)
 					break;
 			}
 		}
-
 
 
 		
 	}
 
 	else if (choiceofson==1){
-		nright=getallleafs(*((dectree*)(t.right)), verticesright);
+		nright=getnumberofleafs (*(t.right));
+		verticesright=(int*)malloc(nright*sizeof(int));
+		getallleafs(*(t.right), verticesright);
 		nleft=g.size-nright;
+		verticesleft=(int*)malloc(nleft*sizeof(int));
 		
 		int i=0;
 		int j=0;
@@ -68,7 +73,7 @@ int firstpreprocess(graph g, dectree t, int choiceofson){
 			if (inright==0){
 				verticesleft[k]=i;
 				k++;
-				if (k==nleft-1)
+				if (k==nleft)
 					break;
 			}
 		}
@@ -78,18 +83,213 @@ int firstpreprocess(graph g, dectree t, int choiceofson){
 
 
 	int *matrixwrtcut = (int*)malloc(nleft*nright*sizeof(int));
-		
+
 	for (int i=0;i<nleft;i++){
 		for (int j=0;j<nright;j++){
-			matrixwrtcut[i*nleft+j]=g.matrix[verticesleft[i]*g.size+verticesright[j]];
+			matrixwrtcut[i*nright+j]=g.matrix[verticesleft[i]*g.size+verticesright[j]];
+		}
+	printf("what happen %d\n",i);
+	}
+	for (int i=0;i<nleft;i++){
+		for (int j=0;j<nright;j++){
+			printf("%d|",matrixwrtcut[i*nright+j]);
+		}
+		printf("\n");
+	}
+
+	int *twinsleft = (int*)malloc(2*nleft*nleft*sizeof(int));
+	int *twinsright = (int*)malloc(2*nright*nright*sizeof(int));
+	//printf("what happen\n");
+	matchTwins(nleft,nright,matrixwrtcut,twinsleft,twinsright);
+	//printf("what happen\n");
+	for (int i=0;i<nleft*nleft;i++){
+		printf("Voici une classe à gauche: ");
+		for (int j=0;j<2;j++){
+			printf("%d ",twinsleft[i*2+j]);
+		}
+		printf("\n");
+	}
+
+	for (int i=0;i<nright*nright;i++){
+		printf("Voici une classe à droite: ");
+		for (int j=0;j<2;j++){
+			printf("%d ",twinsright[i*2+j]);
+		}
+		printf("\n");
+	}
+
+	t.pointtorep=(int*)malloc(2*nleft*sizeof(int));
+	t.pointtorepincomp=(int*)malloc(2*nright*sizeof(int));
+	for (int i=0;i<nleft;i++){
+		printf("Sommet à gauche : %d\n",verticesleft[i]);
+	}
+	for (int i=0;i<nright;i++){
+		printf("Sommet à droite : %d\n",verticesright[i]);
+	}
+	for (int i=0; i<2*nleft;i++){
+		t.pointtorep[i]=-1;
+	}
+
+	for (int i=0;i<2*nright;i++){
+		t.pointtorepincomp[i]=-1;
+	}
+
+	for (int i=0;i<nleft;i++){
+		t.pointtorep[i*2]=verticesleft[i];
+		for (int j=0;j<nleft*nleft;j++){
+			int a = twinsleft[j*2];
+			int b = twinsleft[j*2+1];
+		
+			if (a==i){
+				if (verticesleft[b]>t.pointtorep[i*2+1]){
+					t.pointtorep[i*2+1]=verticesleft[b];
+				}
+			}
+			if (b==i){
+				if (verticesleft[a]>t.pointtorep[i*2+1]){
+					t.pointtorep[i*2+1]=verticesleft[a];
+				}
+			}
+		}
+		if ((t.pointtorep[i*2+1]==-1)||(t.pointtorep[i*2+1]<verticesleft[i])){
+			t.pointtorep[i*2+1]=verticesleft[i];
 		}
 	}
-	
-	int *twinsleft = (int*)malloc(nleft*nleft*sizeof(int));
-	findTwins(g.size,matrixwrtcut,twinsleft);
-	int *twinsright = (int*)malloc(nright*nright*sizeof(int));
-	findTwins(g.size,matrixwrtcut,twinsright);
+	for (int i=0;i<nleft;i++){
+		printf("Voici une classe à gauche: ");
+		for (int j=0;j<2;j++){
+			printf("%d ",t.pointtorep[i*2+j]);
+		}
+		printf("\n");
+	}
 
+	for (int i=0;i<nright;i++){
+		t.pointtorepincomp[i*2]=verticesright[i];
+		for (int j=0;j<nright*nright;j++){
+			int a = twinsright[j*2];
+			int b = twinsright[j*2+1];
+		
+			if (a==i){
+				if (verticesright[b]>t.pointtorepincomp[i*2+1]){
+					t.pointtorepincomp[i*2+1]=verticesright[b];
+				}
+			}
+			if (b==i){
+				if (verticesright[a]>t.pointtorepincomp[i*2+1]){
+					t.pointtorepincomp[i*2+1]=verticesright[a];
+				}
+			}
+		}
+		if ((t.pointtorepincomp[i*2+1]==-1)||(t.pointtorepincomp[i*2+1]<verticesright[i])){
+			t.pointtorepincomp[i*2+1]=verticesright[i];
+		}
+	}
+	for (int i=0;i<nright;i++){
+		printf("Voici une classe à droite: ");
+		for (int j=0;j<2;j++){
+			printf("%d ",t.pointtorepincomp[i*2+j]);
+		}
+		printf("\n");
+	}
+	
+	t.tc=(int*)malloc(nleft*sizeof(int));
+	t.complementtc=(int*)malloc(nright*sizeof(int));
+	int cursor = 0;
+	for (int i=0;i<nleft;i++){
+		int here=0;
+		for (int j=0;j<nleft;j++){
+			if (t.pointtorep[2*i+1]==t.tc[j]){
+				here=1;
+				break;
+			}
+		}
+		if (here==0){
+			t.tc[cursor]=t.pointtorep[2*i+1];
+			cursor++;
+		}
+	}
+
+	t.nrep=cursor;
+	realloc(t.tc,cursor*sizeof(int));
+	cursor=0;
+	for (int i=0;i<nright;i++){
+		int here=0;
+		for (int j=0;j<nright;j++){
+			if (t.pointtorepincomp[2*i+1]==t.complementtc[j]){
+				here=1;
+				break;
+			}
+		}
+		if (here==0){
+			t.complementtc[cursor]=t.pointtorepincomp[2*i+1];
+			cursor++;
+		}
+	}
+	t.nrepincomp=cursor;
+	realloc(t.complementtc,cursor*sizeof(int));
+
+}
+
+int matchTwins (int nleft, int nright, int* mat, int* twinsleft, int* twinsright){
+	int i,j,k;
+	int cursor=0;
+
+
+	for(i=0;i<2*nleft*nleft;i++)
+		twinsleft[i]=-1;
+
+	for(i=0;i<2*nright*nright;i++)
+		twinsright[i]=-1;
+
+	for (i=0;i<nleft;i++){
+		for (j=i+1;j<nleft;j++){	
+			int tw=1;	
+
+			for (k=0;k<nright;k++){
+			
+				if(mat[i*nright+k]!=mat[j*nright+k]){
+				
+					tw=0;
+					break;
+				}
+			}	
+			
+			if (tw==1){	
+				printf("%d, %d\n",i,j);		
+				twinsleft[cursor]=i;
+				cursor++;
+				twinsleft[cursor]=j;
+				cursor++;
+			}
+			
+		} 		
+	}
+	cursor = 0;
+	for (i=0;i<nright;i++){
+		for (j=i+1;j<nright;j++){	
+			int tw=1;	
+
+			for (k=0;k<nleft;k++){
+			
+				if(mat[k*nright+i]!=mat[k*nright+j]){
+				
+					tw=0;
+					break;
+				}
+			}	
+			
+			if (tw==1){		
+				printf("%d, %d\n",i,j);			
+				twinsright[cursor]=i;
+				cursor++;
+				twinsright[cursor]=j;
+				cursor++;
+			}
+			
+		} 		
+	}
+
+	return EXIT_SUCCESS;
 }
 
 
@@ -102,7 +302,9 @@ int findTwins(int n,int* mat,int* twins){
 		twins[i]=0;
 	
 	int* partition;
+	printf("sup\n");
 	partition=(int*)malloc(n*n*sizeof(int));
+	printf("sup\n");
 
 	for (i=0;i<n*n;i++){
 		if (i<n)

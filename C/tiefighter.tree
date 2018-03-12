@@ -1,0 +1,17 @@
+a -1 b c
+b -1 d e
+c -1 l m
+d -1 f g
+e -1 j k
+f -1 h i
+g 3
+h 0
+i 1
+j 2
+k 4
+l -1 n o
+m -1 p q
+n 5
+o 6
+p 7
+q 8

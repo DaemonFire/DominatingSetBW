@@ -16,6 +16,6 @@
 
 	dectree loadtree (char* path);
 
-	dectree* lookTree (FILE *f, char *node);
+	dectree lookTree (FILE *f, char *node);
 
 #endif

@@ -141,18 +141,28 @@ dectree loadtree (char* path) {
 
 	(fgets(buffer,80,f));
 	char* a = strtok(buffer," ");
+
 	int b = atoi(subtoken=strtok(NULL," "));
 	if (b==-1){
 		char* c = strtok(NULL," ");
-		char * d = strtok(NULL," ");
+		char* e = strtok(NULL," ");
+		char* d = (char*)malloc(strlen(e)-1);
+		strncpy(d,e,strlen(e)-1);
 
-		t.left = lookTree(f, c);
-		t.right = lookTree(f,d);
+		dectree q = lookTree(f, c);
+		dectree r = lookTree(f,d);
+		t.label=-1;
+		t.left=(dectree*)malloc(sizeof(dectree));
+		t.right=(dectree*)malloc(sizeof(dectree));
+		*(t.left) = q;
+		*(t.right) = r;	
+
 	}
 
 	else {
-
 		t.label=b;
+		t.right=NULL;
+		t.left=NULL;
 	}
 
 		fclose(f);
@@ -160,10 +170,10 @@ dectree loadtree (char* path) {
 	return t;
 }
 
-dectree* lookTree (FILE *f, char *node){
+dectree lookTree (FILE *f, char *node){
 	int found=0;
 	dectree t;
-	printf("Looking for %s\n",node);
+
 	char buffer[21];
 	char* subtoken;
 	fseek(f,0,SEEK_SET);
@@ -171,26 +181,37 @@ dectree* lookTree (FILE *f, char *node){
 	while ((found==0)&&(fgets(buffer,80,f)!=NULL)){	
 		
 		char* a = strtok(buffer," ");
-		//printf("buffer is %d",strcmp(a,node));
+
 		if (strcmp(a,node)==0){
-			printf("Found %s\n",node);
+
 			int b = atoi(subtoken=strtok(NULL," "));
 			if (b==-1){
 				char* c = strtok(NULL," ");
-				char * d = strtok(NULL," ");
+				char* e = strtok(NULL," ");
+				char* d = (char*)malloc(strlen(e)-1);
+				strncpy(d,e,strlen(e)-1);
 
-				t.left = lookTree(f, c);
-				printf("gonna try the right\n");
-				t.right = lookTree(f,d);
+				dectree q = lookTree(f, c);
+				dectree r = lookTree(f,d);
+				t.label=-1;
+				t.left=(dectree*)malloc(sizeof(dectree));
+				t.right=(dectree*)malloc(sizeof(dectree));
+				*(t.left) = q;
+				*(t.right) = r;
+
 			}
-			else 
+
+			else {
 				t.label=b;
-			
+				t.right=NULL;
+				t.left=NULL;
+			}
 			found=1;
 
 		}
 	}
-	return &t;
+
+	return t;
 
 }
 

@@ -1,6 +1,8 @@
 #include "../include/datarepresentation.h"
 #include "../include/graphplot.h"
 #include "../include/generatedata.h"
+#include "../include/treeprimitives.h"
+#include "../include/algorithms.h"
 
 #include <unistd.h>
 #include <stdio.h>
@@ -13,10 +15,19 @@
 int main (int argc, char** argv){
 	//graph g = generategraph (10,1000,1000,450);
 	//storegraph(g, "straight.points");
-	graph g=loadgraph("straight.points", 180);
-	dectree t=loadtree("straight.tree");
+	graph g=loadgraph("stardestroyer.points", 180);
+	dectree t=loadtree("stardestroyer.tree");
 
-	generatePlotFile (t, g);
+	int *l;
+
+	int n = getnumberofleafs(t);
+	l=(int*)malloc(n*sizeof(int));
+	
+	getallleafs(*(t.right),l);
+	
+	firstpreprocess(g, t, 0);
+
+	//generatePlotFile (t, g);
 
 	return EXIT_SUCCESS;
 }

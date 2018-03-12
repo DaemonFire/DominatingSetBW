@@ -4,4 +4,6 @@
 
 int getallleafs(dectree t, int *list);
 
+int getnumberofleafs (dectree t);
+
 #endif

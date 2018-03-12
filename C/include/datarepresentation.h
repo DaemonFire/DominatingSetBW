@@ -8,12 +8,15 @@ Data structure for decomposition tree representation. Both void* will store poin
 */
 
 typedef struct dectree {
-	void *left;
-	void *right;
-	size_t label;
+	struct dectree *left;
+	struct dectree *right;
+	int label;
 	int *tc;
+	int nrep;
 	int *complementtc;
+	int nrepincomp;
 	int *pointtorep;
+	int *pointtorepincomp;
 } dectree; 
 
 
