@@ -13,13 +13,15 @@
 #define GNUPLOT_PATH "/usr/bin/gnuplot"
 #define PLOTFILE_PATH "res/config.txt"
 
+
+// This obsolete function was created in order to give some visual representation of the graph and the data we would be computing about the graph. But I've decided to use a pre-existing JAVA Canevas instead and thus, have not implemented much in here (though the plot of the graph is correct and can be used
 int generatePlotFile (dectree t, graph g){
 
-//open file in which we will write down our data
-	FILE * temp = fopen ("res/config.txt", "w");
 
-//open the GnuPlot connector
-	FILE * gnuplotPipe = popen ("gnuplot -persistent", "w");
+	FILE * temp = fopen ("res/config.txt", "w");									//open file in which we will write down our data
+
+
+	FILE * gnuplotPipe = popen ("gnuplot -persistent", "w");						//open the GnuPlot connector
 
 	fprintf(gnuplotPipe, "plot ");
 	fprintf(temp, "# x y\n\n");

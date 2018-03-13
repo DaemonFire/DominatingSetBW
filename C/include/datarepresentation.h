@@ -11,12 +11,19 @@ typedef struct dectree {
 	struct dectree *left;
 	struct dectree *right;
 	int label;
+
+	int *matrixrevisited;
 	int *tc;
 	int nrep;
 	int *complementtc;
 	int nrepincomp;
 	int *pointtorep;
 	int *pointtorepincomp;
+
+	int **lra;
+	int **lrcompa;
+	int **assoc;
+
 } dectree; 
 
 

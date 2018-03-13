@@ -23,9 +23,9 @@ int firstpreprocess(graph g, dectree t, int choiceofson){
 	int *verticesright=NULL;
 
 	if (choiceofson==0){
-		nleft=getnumberofleafs (*(t.left));
+		nleft=getnumberofleaves (*(t.left));
 		verticesleft=(int*)malloc(nleft*sizeof(int));
-		getallleafs(*(t.left), verticesleft);
+		getallleaves(*(t.left), verticesleft);
 		nright=g.size-nleft;
 		verticesright=(int*)malloc(nright*sizeof(int));
 
@@ -53,9 +53,9 @@ int firstpreprocess(graph g, dectree t, int choiceofson){
 	}
 
 	else if (choiceofson==1){
-		nright=getnumberofleafs (*(t.right));
+		nright=getnumberofleaves (*(t.right));
 		verticesright=(int*)malloc(nright*sizeof(int));
-		getallleafs(*(t.right), verticesright);
+		getallleaves(*(t.right), verticesright);
 		nleft=g.size-nright;
 		verticesleft=(int*)malloc(nleft*sizeof(int));
 		
@@ -227,6 +227,10 @@ int firstpreprocess(graph g, dectree t, int choiceofson){
 	}
 	t.nrepincomp=cursor;
 	realloc(t.complementtc,cursor*sizeof(int));
+
+	t.matrixrevisited=matrixwrtcut;
+
+	return EXIT_SUCCESS;
 
 }
 
@@ -462,6 +466,72 @@ int findTwins(int n,int* mat,int* twins){
 	for (i=0;i<n;i++)
 		MAT(mat,i,i,n)=0;
 	
+
+	return EXIT_SUCCESS;
+}
+
+int secondepreprocess (dectree t){
+
+	t.lra=NULL;
+	t.lrcompa=NULL;
+	int **nextLevel=NULL;
+	int **lastLevel=(int*)malloc(sizeof(int*));
+	lastLevel[0]=(int*)malloc(sizeof(int));
+	lastLevel[0][0]=-1;
+	int sizeoflast=1;
+	
+	while (lastLevel!=NULL) {
+		for (int i=0; i<sizeoflast;i++){
+			int j=0;
+			int *r;
+			while (lastLevel[i][j]!=-1){
+				realloc(r,(j+1)*sizeof(int));
+				r[j]=lastLevel[i][j];
+			}
+
+			int k=0;
+
+			while (t.tc[k]!=NULL){
+
+				int *rprime = (int*)malloc((j+2)*sizeof(int));
+
+				for (int l=0;l<j+1;l++){
+					rprime[l]=r[l];
+				}
+
+				rprime[j+1]=t.tc[k];
+				int *n=NULL;
+				int numn=0;
+
+				for (int l=0;l<j+2;l++){
+
+					for (int m=0; m<t.nrepincomp; m++){
+
+						if(t.matrixrevisited[rprime[l]*t.nrepincomp+m]==1){
+
+							int alreadyin=0;
+							for (int o=0; o<numn;o++){
+
+								if (n[o]==t.complementtc[m]){
+									alreadyin=1;
+									break;
+								}
+
+							}
+
+							if (alreadyin==0){
+								numn++;
+								realloc(n,numn*sizeof(int));
+								n[numn-1]=t.complementtc[m];
+							}
+						}
+					}
+				}
+
+				
+			}
+		}
+	}
 
 	return EXIT_SUCCESS;
 }

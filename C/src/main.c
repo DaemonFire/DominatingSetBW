@@ -20,10 +20,10 @@ int main (int argc, char** argv){
 
 	int *l;
 
-	int n = getnumberofleafs(t);
+	int n = getnumberofleaves(t);
 	l=(int*)malloc(n*sizeof(int));
 	
-	getallleafs(*(t.right),l);
+	getallleaves(*(t.right),l);
 	
 	firstpreprocess(g, t, 0);
 
