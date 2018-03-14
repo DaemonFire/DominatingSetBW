@@ -11,256 +11,234 @@
 #include <sys/stat.h>
 #define MAT(mat,x,y,n) (mat[x*n+y])
 
-int firstpreprocess(graph g, dectree t, int choiceofson){
 
-	if((t.left==NULL)||(t.right==NULL)){
-		return EXIT_FAILURE;
+// This function takes a graph, a decomposition tree and and int stating if we're to cut the left or right son of the tree t to create the
+// cut in the decomposition graph
+// TODO : HOW ARE WE GONNA KEEP THE POINTS OF FATHER TREE IN??? :'( :'( :'(
+cutdata cutThatTree (graph g, dectree t, int choiceofson){
+	cutdata c;
+	c.t=t;
+	c.choiceofson=choiceofson;
+	
+	c.na=0;
+	c.nacomp=0;
+	c.a=NULL;
+	c.acomp=NULL;
+
+	if (choiceofson==0){						// a choiceofson of 0 means that we're cutting the decomposition tree along the left exiting
+		c.na=getnumberofleaves (*(t.left));		// edge of the current node. So primary sub-graph is going to be the set of points
+		c.a=(int*)malloc(c.na*sizeof(int));		// represented by leaves of the left son node
+		getallleaves(*(t.left), c.a);
+
+	}
+	
+	else {
+		c.na=getnumberofleaves (*(t.right));	// a choice of son 1 means that we're cutting the tree along the right exiting edge
+		c.a=(int*)malloc(c.na*sizeof(int));
+		getallleaves (*(t.right),c.a);
 	}
 
-	int nleft=0;
-	int nright=0;
-	int *verticesleft=NULL;
-	int *verticesright=NULL;
+	c.nacomp=g.size-c.na;
+	c.acomp=(int*)malloc(c.nacomp*sizeof(int));
 
-	if (choiceofson==0){
-		nleft=getnumberofleaves (*(t.left));
-		verticesleft=(int*)malloc(nleft*sizeof(int));
-		getallleaves(*(t.left), verticesleft);
-		nright=g.size-nleft;
-		verticesright=(int*)malloc(nright*sizeof(int));
-
-		int i=0;
-		int j=0;
-		int k=0;
-		for (i=0;i<g.size;i++){
-			int inleft=0;
-			for (j=0;j<nleft;j++){
-				if (verticesleft[j]==i){
-					inleft=1;
-					break;
-				}
-			}
-			if (inleft==0){
-				verticesright[k]=i;
-				k++;
-				if (k==nright)
-					break;
-			}
-		}
-
-
-		
-	}
-
-	else if (choiceofson==1){
-		nright=getnumberofleaves (*(t.right));
-		verticesright=(int*)malloc(nright*sizeof(int));
-		getallleaves(*(t.right), verticesright);
-		nleft=g.size-nright;
-		verticesleft=(int*)malloc(nleft*sizeof(int));
-		
-		int i=0;
-		int j=0;
-		int k=0;
-		for (i=0;i<g.size;i++){
-			int inright=0;
-			for (j=0;j<nright;j++){
-				if (verticesright[j]==i){
-					inright=1;
-					break;
-				}
-			}
-			if (inright==0){
-				verticesleft[k]=i;
-				k++;
-				if (k==nleft)
-					break;
+	int i=0;
+	int j=0;
+	int k=0;
+	for (i=0;i<g.size;i++){						// all other points will be in the complementary, the second sub-graph. That's why we		
+		int ina=0;								// iterate on graph's size, to get all points of the graph and not just points that
+		for (j=0;j<c.na;j++){					// are contained in sons of the current node
+			if (c.a[j]==i){						
+				ina=1;
+				break;
 			}
 		}
-
-
-	}
-
-
-	int *matrixwrtcut = (int*)malloc(nleft*nright*sizeof(int));
-
-	for (int i=0;i<nleft;i++){
-		for (int j=0;j<nright;j++){
-			matrixwrtcut[i*nright+j]=g.matrix[verticesleft[i]*g.size+verticesright[j]];
+		if (ina==0){
+			c.acomp[k]=i;
+			k++;
+			if (k==c.nacomp)
+				break;
 		}
-	printf("what happen %d\n",i);
 	}
-	for (int i=0;i<nleft;i++){
-		for (int j=0;j<nright;j++){
-			printf("%d|",matrixwrtcut[i*nright+j]);
+
+
+	c.matrixrevisited = (int*)malloc(c.na*c.nacomp*sizeof(int));
+
+
+	// Now that we have determined the vertices we're interested in, we compute the adjacency matrix reduced to those vertices
+	for (int i=0;i<c.na;i++){
+		for (int j=0;j<c.nacomp;j++){
+			c.matrixrevisited[i*c.na+j]=g.matrix[c.a[i]*g.size+c.acomp[j]];
 		}
-		printf("\n");
+
 	}
 
-	int *twinsleft = (int*)malloc(2*nleft*nleft*sizeof(int));
-	int *twinsright = (int*)malloc(2*nright*nright*sizeof(int));
-	//printf("what happen\n");
-	matchTwins(nleft,nright,matrixwrtcut,twinsleft,twinsright);
-	//printf("what happen\n");
-	for (int i=0;i<nleft*nleft;i++){
-		printf("Voici une classe à gauche: ");
-		for (int j=0;j<2;j++){
-			printf("%d ",twinsleft[i*2+j]);
-		}
-		printf("\n");
+	return c;
+}
+
+
+/*
+this first pre-process takes a graph, its decomposition tree and a cut of this decomposition tree as input and computes its equivalency 
+classes, the output being the lists of representants of the equivalency classes of both primary and secondary sub-graphs, their numbers
+and two lists which associate each point of a subgraph to the representant of its equivalency class 
+*/
+int firstpreprocess(graph g, dectree t, cutdata c){
+
+	int *twinsleft = (int*)malloc(2*c.na*c.na*sizeof(int));			// we have at most na squared twin pairs, in the case of a complete graph
+	int *twinsright = (int*)malloc(2*c.nacomp*c.nacomp*sizeof(int));
+
+	matchTwins(c ,twinsleft,twinsright);							// we compute the list of twins in each sub-graph. This will be a 
+																	// sequency with each eventh vertice being twin of the following oddth
+																	// vertice, relative to the induced partition of the graph
+
+	c.pointtorep=(int*)malloc(2*c.na*sizeof(int));					// we're going to associate the representant of the equivalency class
+	c.pointtorepincomp=(int*)malloc(2*c.nacomp*sizeof(int));		// to each vertice of each subgraph
+	
+	for (int i=0; i<2*c.na;i++){
+		c.pointtorep[i]=-1;
 	}
 
-	for (int i=0;i<nright*nright;i++){
-		printf("Voici une classe à droite: ");
-		for (int j=0;j<2;j++){
-			printf("%d ",twinsright[i*2+j]);
-		}
-		printf("\n");
+	for (int i=0;i<2*c.nacomp;i++){
+		c.pointtorepincomp[i]=-1;
 	}
 
-	t.pointtorep=(int*)malloc(2*nleft*sizeof(int));
-	t.pointtorepincomp=(int*)malloc(2*nright*sizeof(int));
-	for (int i=0;i<nleft;i++){
-		printf("Sommet à gauche : %d\n",verticesleft[i]);
-	}
-	for (int i=0;i<nright;i++){
-		printf("Sommet à droite : %d\n",verticesright[i]);
-	}
-	for (int i=0; i<2*nleft;i++){
-		t.pointtorep[i]=-1;
-	}
+	for (int i=0;i<c.na;i++){
+		c.pointtorep[i*2]=c.a[i];
 
-	for (int i=0;i<2*nright;i++){
-		t.pointtorepincomp[i]=-1;
-	}
-
-	for (int i=0;i<nleft;i++){
-		t.pointtorep[i*2]=verticesleft[i];
-		for (int j=0;j<nleft*nleft;j++){
+		for (int j=0;j<c.na*c.na;j++){
 			int a = twinsleft[j*2];
-			int b = twinsleft[j*2+1];
-		
-			if (a==i){
-				if (verticesleft[b]>t.pointtorep[i*2+1]){
-					t.pointtorep[i*2+1]=verticesleft[b];
-				}
-			}
+			int b = twinsleft[j*2+1];								// for each vertice in primary sub-graph A, we try to find every
+																	// occurence of it in the twins matrix
+			if (a==i){												// in the twins matrix, vertices are designed by indexes in the sub-graph
+				if (c.a[b]>c.pointtorep[i*2+1]){					// once we find an occurence of the vertice, we check if the vertice to
+					c.pointtorep[i*2+1]=c.a[b];						// which he is a twin has an index (in the whole graph) greater than
+				}													// the one registered in the current pointerToRep matrix, in which case
+			}														// we save this one instead
 			if (b==i){
-				if (verticesleft[a]>t.pointtorep[i*2+1]){
-					t.pointtorep[i*2+1]=verticesleft[a];
+				if (c.a[a]>c.pointtorep[i*2+1]){
+					c.pointtorep[i*2+1]=c.a[a];
 				}
 			}
 		}
-		if ((t.pointtorep[i*2+1]==-1)||(t.pointtorep[i*2+1]<verticesleft[i])){
-			t.pointtorep[i*2+1]=verticesleft[i];
-		}
-	}
-	for (int i=0;i<nleft;i++){
-		printf("Voici une classe à gauche: ");
-		for (int j=0;j<2;j++){
-			printf("%d ",t.pointtorep[i*2+j]);
-		}
-		printf("\n");
-	}
 
-	for (int i=0;i<nright;i++){
-		t.pointtorepincomp[i*2]=verticesright[i];
-		for (int j=0;j<nright*nright;j++){
+		// at the end of those loops, the pointerToRep matrix associates each vertex to the representant of his equivalency class
+		// which is the vertex which is a twin of it with the greatest index possible
+		if (c.pointtorep[i*2+1]<c.a[i]){
+			c.pointtorep[i*2+1]=c.a[i];								// but we've not treated the case of the vertex itself, which could	
+		}															// be the one with the greatest index of its equivalency class
+	}																// if that's the case, this vertex becomes its own representant
+
+
+	// we do the exact same thing for the complementary of A, the secondary sub-graph
+	for (int i=0;i<c.nacomp;i++){
+		c.pointtorepincomp[i*2]=c.acomp[i];
+		for (int j=0;j<c.nacomp*c.nacomp;j++){
 			int a = twinsright[j*2];
 			int b = twinsright[j*2+1];
 		
 			if (a==i){
-				if (verticesright[b]>t.pointtorepincomp[i*2+1]){
-					t.pointtorepincomp[i*2+1]=verticesright[b];
+				if (c.acomp[b]>c.pointtorepincomp[i*2+1]){
+					c.pointtorepincomp[i*2+1]=c.acomp[b];
 				}
 			}
 			if (b==i){
-				if (verticesright[a]>t.pointtorepincomp[i*2+1]){
-					t.pointtorepincomp[i*2+1]=verticesright[a];
+				if (c.acomp[a]>c.pointtorepincomp[i*2+1]){
+					c.pointtorepincomp[i*2+1]=c.acomp[a];
 				}
 			}
 		}
-		if ((t.pointtorepincomp[i*2+1]==-1)||(t.pointtorepincomp[i*2+1]<verticesright[i])){
-			t.pointtorepincomp[i*2+1]=verticesright[i];
+
+		if (c.pointtorepincomp[i*2+1]<c.acomp[i]){
+			c.pointtorepincomp[i*2+1]=c.acomp[i];
 		}
 	}
-	for (int i=0;i<nright;i++){
-		printf("Voici une classe à droite: ");
-		for (int j=0;j<2;j++){
-			printf("%d ",t.pointtorepincomp[i*2+j]);
-		}
-		printf("\n");
-	}
-	
-	t.tc=(int*)malloc(nleft*sizeof(int));
-	t.complementtc=(int*)malloc(nright*sizeof(int));
+
+	// now that we have computed equivalency class and associated each verted to the representant of its class, we list those representants
+	c.tc=(int*)malloc(c.na*sizeof(int));
+	c.complementtc=(int*)malloc(c.nacomp*sizeof(int));
 	int cursor = 0;
-	for (int i=0;i<nleft;i++){
+	for (int i=0;i<c.na;i++){
 		int here=0;
-		for (int j=0;j<nleft;j++){
-			if (t.pointtorep[2*i+1]==t.tc[j]){
-				here=1;
-				break;
+		for (int j=0;j<c.na;j++){
+			if (c.pointtorep[2*i+1]==c.tc[j]){
+				here=1;										// for each representant in the pointerToRep matrix, we check if it has already
+				break;										// been registered in the list of representants. If it has, no need to register
 			}
 		}
-		if (here==0){
-			t.tc[cursor]=t.pointtorep[2*i+1];
+		if (here==0){										// if it has not, we register it and increments our cursor
+			c.tc[cursor]=c.pointtorep[2*i+1];			
 			cursor++;
 		}
 	}
 
-	t.nrep=cursor;
-	realloc(t.tc,cursor*sizeof(int));
+	c.nrep=cursor;											// this cursor has counted all representatives and we store that
+	realloc(c.tc,cursor*sizeof(int));						// we reallocate our pointer in order not to waste memory
+
+
+	// we do the same for secondary sub-graph
 	cursor=0;
-	for (int i=0;i<nright;i++){
+	for (int i=0;i<c.nacomp;i++){
 		int here=0;
-		for (int j=0;j<nright;j++){
-			if (t.pointtorepincomp[2*i+1]==t.complementtc[j]){
+		for (int j=0;j<c.nacomp;j++){
+			if (c.pointtorepincomp[2*i+1]==c.complementtc[j]){
 				here=1;
 				break;
 			}
 		}
 		if (here==0){
-			t.complementtc[cursor]=t.pointtorepincomp[2*i+1];
+			c.complementtc[cursor]=c.pointtorepincomp[2*i+1];
 			cursor++;
 		}
 	}
-	t.nrepincomp=cursor;
+	c.nrepincomp=cursor;
 	realloc(t.complementtc,cursor*sizeof(int));
 
-	t.matrixrevisited=matrixwrtcut;
+
+	/*
+	 now that we have reduced the graph to equivalency classes we'd like to reduce the matrix to the representants of those equivalency
+	classes in order to speed up future computations ever further
+	*/
+	int *tmp = (int*) malloc(c.nrep*c.nrepincomp*sizeof(int));
+	for (int i=0;i<c.nrep;i++){
+		for (int j=0;j<c.nrepincomp;j++){
+			tmp[i*c.nrepincomp+j]=c.matrixrevisited[c.tc[i]*c.nacomp+c.complementtc[j]];
+		}
+	}
+
+	c.matrixrevisited=tmp;
 
 	return EXIT_SUCCESS;
 
 }
 
-int matchTwins (int nleft, int nright, int* mat, int* twinsleft, int* twinsright){
+
+
+// This if the function of wonders! It computes twins in each subgraph by checking if their induced vectors in the adjacency matrix match
+int matchTwins (cutdata c, int* twinsleft, int* twinsright){
 	int i,j,k;
 	int cursor=0;
 
 
-	for(i=0;i<2*nleft*nleft;i++)
+	for(i=0;i<2*c.na*c.na;i++)
 		twinsleft[i]=-1;
 
-	for(i=0;i<2*nright*nright;i++)
+	for(i=0;i<2*c.nacomp*c.nacomp;i++)
 		twinsright[i]=-1;
 
-	for (i=0;i<nleft;i++){
-		for (j=i+1;j<nleft;j++){	
+	for (i=0;i<c.na;i++){
+		for (j=i+1;j<c.na;j++){					// we take each pair of vertices of one subgraph	
 			int tw=1;	
 
-			for (k=0;k<nright;k++){
+			for (k=0;k<c.nacomp;k++){			// and we check coordinates by coordinates that they have the same induced vector
 			
-				if(mat[i*nright+k]!=mat[j*nright+k]){
+				if(c.matrixrevisited[i*c.nacomp+k]!=c.matrixrevisited[j*c.nacomp+k]){
 				
-					tw=0;
+					tw=0;						// upon finding a coordinate that doesn't match, we flag this pair as non-twins
 					break;
 				}
 			}	
 			
-			if (tw==1){	
-				printf("%d, %d\n",i,j);		
-				twinsleft[cursor]=i;
+			if (tw==1){							// if no conflit has been detected, the pair is a twins pair and we write it down in the
+				twinsleft[cursor]=i;			// twin matrix
 				cursor++;
 				twinsleft[cursor]=j;
 				cursor++;
@@ -268,14 +246,17 @@ int matchTwins (int nleft, int nright, int* mat, int* twinsleft, int* twinsright
 			
 		} 		
 	}
+
 	cursor = 0;
-	for (i=0;i<nright;i++){
-		for (j=i+1;j<nright;j++){	
+
+	// we do the same on secondary sub-graph
+	for (i=0;i<c.nacomp;i++){
+		for (j=i+1;j<c.nacomp;j++){	
 			int tw=1;	
 
-			for (k=0;k<nleft;k++){
+			for (k=0;k<c.na;k++){
 			
-				if(mat[k*nright+i]!=mat[k*nright+j]){
+				if(c.matrixrevisited[k*c.nacomp+i]!=c.matrixrevisited[k*c.nacomp+j]){
 				
 					tw=0;
 					break;
@@ -283,7 +264,6 @@ int matchTwins (int nleft, int nright, int* mat, int* twinsleft, int* twinsright
 			}	
 			
 			if (tw==1){		
-				printf("%d, %d\n",i,j);			
 				twinsright[cursor]=i;
 				cursor++;
 				twinsright[cursor]=j;
@@ -297,6 +277,11 @@ int matchTwins (int nleft, int nright, int* mat, int* twinsleft, int* twinsright
 }
 
 
+
+/*
+This function is another way of computing twins, using the partition refinment procedure but it has not yet been tailored to fit this
+project. At least it is statically ok and doesn't cause compilation problem. TODO: Tailor this shit to be used instead of the previous function because it is more badass.
+*/
 int findTwins(int n,int* mat,int* twins){
 	int i,j,k;	
 	int cursor=0;
@@ -470,67 +455,118 @@ int findTwins(int n,int* mat,int* twins){
 	return EXIT_SUCCESS;
 }
 
-int secondepreprocess (dectree t){
 
-	t.lra=NULL;
-	t.lrcompa=NULL;
-	int **nextLevel=NULL;
-	int **lastLevel=(int*)malloc(sizeof(int*));
-	lastLevel[0]=(int*)malloc(sizeof(int));
-	lastLevel[0][0]=-1;
+
+/* 
+This is the second pre-processing function. We give it a tree and a cutdata on which the first preprocess has been carried on 
+and it uses informations on representants to compute the list of representant sets, their respectives neighboorhoods and associations
+between those two sets of data, to be stored in the cutdata
+*/
+int secondpreprocess (dectree t, cutdata c){
+
+	c.lra=NULL;
+	c.lnra=NULL;
+	pointset *nextLevel=NULL;
+	pointset s;
+	s.size=0;						
+	pointset *lastLevel=(int*)malloc(sizeof(pointset));
+	lastLevel[0]=s;
 	int sizeoflast=1;
+	int sizeofnext=0;
 	
-	while (lastLevel!=NULL) {
-		for (int i=0; i<sizeoflast;i++){
-			int j=0;
-			int *r;
-			while (lastLevel[i][j]!=-1){
-				realloc(r,(j+1)*sizeof(int));
-				r[j]=lastLevel[i][j];
-			}
+	while (lastLevel!=NULL) {								// we initialize lastLevel as a set containing only an empty set of points
+		for (int i=0; i<sizeoflast;i++){					// and we loop until lastLevel is an empty set itself
+			pointset r = lastLevel[i];						// for each set of points in lastLevel
+			for (int j=0; j<c.nrep; j++){					// we try adding each representants of equivalency classes of primary subgraph	
+				pointset rprime;
+				rprime.size=0;
+				int alreadyin = 0;
 
-			int k=0;
-
-			while (t.tc[k]!=NULL){
-
-				int *rprime = (int*)malloc((j+2)*sizeof(int));
-
-				for (int l=0;l<j+1;l++){
-					rprime[l]=r[l];
+				for (int k=0;k<r.size;k++){
+					rprime.size++;
+					realloc (rprime.members, rprime.size*sizeof(int));
+					rprime.members[k]=r[k];
+					if (rprime.members[k]==c.tc[j])
+						alreadyin = 1;
 				}
+				
+				if (already==0) {							// if the vertex was already in the pointset, we have nothing to add, so we pass
+					rprime.members[r.size+1]=c.tc[j];		// on to the next representant. Else, we add it to a pointset and compute the
+					pointset n;								// neighboorhood of this new set of points
+					n.size=0;
+					for (int k=0;k<rprime.size;k++){
 
-				rprime[j+1]=t.tc[k];
-				int *n=NULL;
-				int numn=0;
+						for (int l=0; l<c.nrepincomp; l++){	// for each point of this new set we get neighboorhoods
 
-				for (int l=0;l<j+2;l++){
+							if(c.matrixrevisited[rprime.members[l]*c.nrepincomp + l]==1){
+															// for each representant of equivalence classes in the secondary subgraph, we
+															// check if they are neighboors of the point computed
 
-					for (int m=0; m<t.nrepincomp; m++){
+								int alreadyin=0;			// we check that this point has not yet been added to the neighboorhood
+								for (int m=0; m<n.size;m++){
 
-						if(t.matrixrevisited[rprime[l]*t.nrepincomp+m]==1){
+									if (n.members[m]==c.complementtc[l]){
+										alreadyin=1;
+										break;
+									}
 
-							int alreadyin=0;
-							for (int o=0; o<numn;o++){
-
-								if (n[o]==t.complementtc[m]){
-									alreadyin=1;
-									break;
 								}
 
-							}
-
-							if (alreadyin==0){
-								numn++;
-								realloc(n,numn*sizeof(int));
-								n[numn-1]=t.complementtc[m];
+								if (alreadyin==0){			// else, we add it
+									realloc	(n.members, (n.size+1)*sizeof(int));
+									n.members[n.size]=c.complementtc[l];
+									n.size++;
+								}
 							}
 						}
 					}
+
+					// we then check if this neighboorhood is already in lnra
+					int alreadyin = 0;
+					for (int k=0; k<c.lnracard; k++) {
+						pointset tmp = c.lnra[k];
+						int common = 0;
+						for (int l = 0; l<n.size; l++){
+							for (int m =0; m<tmp.size;m++){				// we count the number of vertices of n in each set of lnra
+								if (tmp.members[m]==n.members[l]){		
+									common++;
+									break;
+								}
+							}
+						}
+						
+						if (common == n.size){							// if this number is equal to the size of n, n is already in lnra
+							alreadyin = 1;
+							break;
+						}
+					}
+
+					if (already == 0) {									// if n isn't in lnra, we going to add it and the rprime associated
+						c.lracard++;
+						realloc (c.lra, c.lracard*sizeof(pointset));
+						c.lra[c.lracard-1]=rprime;
+
+						sizeofnext++;
+						realloc(nextLevel, sizeofnext*sizeof(pointset));
+						nextLevel[sizeofnext-1]=rprime;
+
+						c.lnracard++;
+						realloc(c.lnra, c.lnracard*sizeof(pointset));
+						c.lnra[c.lnracard-1]=n;
+
+						realloc(c.assoc, c.lracard*2*sizeof(pointset));
+						c.assoc[c.lracard*2-2]=rprime;
+						c.assoc[c.lracard*2-1]=n;
+					}
+					
+
 				}
 
 				
 			}
 		}
+		lastLevel=nextLevel;											// we loop back until no representating set and no neighboorhoods 
+		nextLevel=NULL;													// are interesting enough to be added
 	}
 
 	return EXIT_SUCCESS;

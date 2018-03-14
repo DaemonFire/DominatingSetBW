@@ -4,15 +4,35 @@
 #include <stddef.h>
 
 /* 
-Data structure for decomposition tree representation. Both void* will store pointers on sons if they exist or none if they don't exist. The label will be 0 if the node is not a terminal singleton. The use of size_t ensures that we can deal with large graphs where int would cause some issues with big graphs, as it would loop back to negative values when it has reached the maximum 
+Data structure for decomposition tree representation. Both pointers will store pointers on sons if they exist or be NULL if they don't exist. The label will be -1 if the node is not a terminal singleton, and any other int if it's a singleton, the value being the point of the graph represented by the leaf 
 */
 
 typedef struct dectree {
 	struct dectree *left;
 	struct dectree *right;
 	int label;
+} dectree; 
 
+// This structure allows to store a set of point in a single structure, while having its size available at all time
+typedef struct pointset {
+	int size;
+	int *members;
+}
+
+
+
+/* 
+This structure is linked to a cut of the decomposition tree t (cut of the left or right son, depending on choiceofson value, 0 or 1). It will be used by the algorithms and contains, the matrix of adjacency limited to the concerned points (giving infos about edges between points of the two sub-graphs thus formed), the numbers and lists of points in each of the subgraphs, the number and list of representants of equivalency classes in both sub-graphs, a list of every points of each subgraph associated to the representant of its equivalency class, the list of representative sets (see second preprocessing) in the primary sub-graph, the list of neighboorhoods of each representative set of the primary sub-graph in the second sub-graph and a list stating the associations between each representative set and his neighboorhood
+*/
+typedef struct cutdata {
+	dectree t;
+	int choiceofson;
 	int *matrixrevisited;
+	int na;
+	int *a;
+	int nacomp;
+	int *acomp;
+
 	int *tc;
 	int nrep;
 	int *complementtc;
@@ -20,15 +40,17 @@ typedef struct dectree {
 	int *pointtorep;
 	int *pointtorepincomp;
 
-	int **lra;
-	int **lrcompa;
-	int **assoc;
+	pointset *lra;
+	int lracard;
+	pointset *lnra;
+	int lnracard;
+	pointset *assoc;
+}
 
-} dectree; 
 
 
 /*
-This data structure is a representation of the graph. It is basically its adjacency matrix and x and y positions of each node. In order to be easier to use, we also add the size, for it to be more accessible
+This data structure is a representation of the graph. It is basically its adjacency matrix and a matrix giving the name of each point and its x and y positions. In order to be easier to use, we also add the size, for it to be more accessible
 */
 
 typedef struct graph {
