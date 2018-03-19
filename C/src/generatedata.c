@@ -156,7 +156,7 @@ dectree lookTree (FILE *f, char *node){
 	int found=0;
 	dectree t;
 
-	char buffer[21];
+	char buffer[81];
 	char* subtoken;
 	fseek(f,0,SEEK_SET);										// we start reading the file again at the beggining to find the line describing the node we're computing here
 
@@ -164,7 +164,9 @@ dectree lookTree (FILE *f, char *node){
 		
 		char* a = strtok(buffer," ");
 
-		if (strcmp(a,node)==0){									// if the first word of the line is the label we're looking for, we're at the right line and we then process the data exactly as in the previous function
+		if (strcmp(a,node)==0){									// if the first word of the line is the label we're looking for, we're at
+																// the right line and we then process the data exactly as in the previous
+																// function
 
 			int b = atoi(subtoken=strtok(NULL," "));
 			if (b==-1){

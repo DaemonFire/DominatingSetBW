@@ -14,10 +14,10 @@ typedef struct dectree {
 } dectree; 
 
 // This structure allows to store a set of point in a single structure, while having its size available at all time
-typedef struct pointset {
+typedef struct pointset{
 	int size;
 	int *members;
-}
+} pointset;
 
 
 
@@ -45,7 +45,7 @@ typedef struct cutdata {
 	pointset *lnra;
 	int lnracard;
 	pointset *assoc;
-}
+} cutdata;
 
 
 

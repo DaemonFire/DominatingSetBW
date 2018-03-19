@@ -14,7 +14,6 @@
 
 // This function takes a graph, a decomposition tree and and int stating if we're to cut the left or right son of the tree t to create the
 // cut in the decomposition graph
-// TODO : HOW ARE WE GONNA KEEP THE POINTS OF FATHER TREE IN??? :'( :'( :'(
 cutdata cutThatTree (graph g, dectree t, int choiceofson){
 	cutdata c;
 	c.t=t;
@@ -39,6 +38,7 @@ cutdata cutThatTree (graph g, dectree t, int choiceofson){
 	}
 
 	c.nacomp=g.size-c.na;
+
 	c.acomp=(int*)malloc(c.nacomp*sizeof(int));
 
 	int i=0;
@@ -60,28 +60,29 @@ cutdata cutThatTree (graph g, dectree t, int choiceofson){
 		}
 	}
 
-
 	c.matrixrevisited = (int*)malloc(c.na*c.nacomp*sizeof(int));
+
 
 
 	// Now that we have determined the vertices we're interested in, we compute the adjacency matrix reduced to those vertices
 	for (int i=0;i<c.na;i++){
 		for (int j=0;j<c.nacomp;j++){
-			c.matrixrevisited[i*c.na+j]=g.matrix[c.a[i]*g.size+c.acomp[j]];
+
+			c.matrixrevisited[i*c.nacomp+j]=g.matrix[c.a[i]*g.size+c.acomp[j]];
+
 		}
 
 	}
-
 	return c;
 }
 
 
 /*
-this first pre-process takes a graph, its decomposition tree and a cut of this decomposition tree as input and computes its equivalency 
+This first pre-process takes a graph, its decomposition tree and a cut of this decomposition tree as input and computes its equivalency 
 classes, the output being the lists of representants of the equivalency classes of both primary and secondary sub-graphs, their numbers
 and two lists which associate each point of a subgraph to the representant of its equivalency class 
 */
-int firstpreprocess(graph g, dectree t, cutdata c){
+cutdata firstpreprocess(graph g, dectree t, cutdata c){
 
 	int *twinsleft = (int*)malloc(2*c.na*c.na*sizeof(int));			// we have at most na squared twin pairs, in the case of a complete graph
 	int *twinsright = (int*)malloc(2*c.nacomp*c.nacomp*sizeof(int));
@@ -190,23 +191,30 @@ int firstpreprocess(graph g, dectree t, cutdata c){
 		}
 	}
 	c.nrepincomp=cursor;
-	realloc(t.complementtc,cursor*sizeof(int));
+	realloc(c.complementtc,cursor*sizeof(int));
 
 
 	/*
 	 now that we have reduced the graph to equivalency classes we'd like to reduce the matrix to the representants of those equivalency
 	classes in order to speed up future computations ever further
 	*/
+	for (int i=0;i<c.na;i++){
+		for (int j=0;j<c.nacomp;j++){
+			printf("%d| ", c.matrixrevisited[i*c.nacomp+j]);
+		}
+		printf("\n");
+	}
+
 	int *tmp = (int*) malloc(c.nrep*c.nrepincomp*sizeof(int));
 	for (int i=0;i<c.nrep;i++){
 		for (int j=0;j<c.nrepincomp;j++){
-			tmp[i*c.nrepincomp+j]=c.matrixrevisited[c.tc[i]*c.nacomp+c.complementtc[j]];
+			tmp[i*c.nrepincomp+j]=g.matrix[c.tc[i]*g.size+c.complementtc[j]];
 		}
 	}
 
 	c.matrixrevisited=tmp;
 
-	return EXIT_SUCCESS;
+	return c;
 
 }
 
@@ -229,7 +237,6 @@ int matchTwins (cutdata c, int* twinsleft, int* twinsright){
 			int tw=1;	
 
 			for (k=0;k<c.nacomp;k++){			// and we check coordinates by coordinates that they have the same induced vector
-			
 				if(c.matrixrevisited[i*c.nacomp+k]!=c.matrixrevisited[j*c.nacomp+k]){
 				
 					tw=0;						// upon finding a coordinate that doesn't match, we flag this pair as non-twins
@@ -291,9 +298,9 @@ int findTwins(int n,int* mat,int* twins){
 		twins[i]=0;
 	
 	int* partition;
-	printf("sup\n");
+
 	partition=(int*)malloc(n*n*sizeof(int));
-	printf("sup\n");
+
 
 	for (i=0;i<n*n;i++){
 		if (i<n)
@@ -462,43 +469,57 @@ This is the second pre-processing function. We give it a tree and a cutdata on w
 and it uses informations on representants to compute the list of representant sets, their respectives neighboorhoods and associations
 between those two sets of data, to be stored in the cutdata
 */
-int secondpreprocess (dectree t, cutdata c){
+cutdata secondpreprocess (dectree t, cutdata c, graph g){
 
-	c.lra=NULL;
-	c.lnra=NULL;
-	pointset *nextLevel=NULL;
+	c.lra=(pointset*)malloc(sizeof(pointset));
+	c.lnra=(pointset*)malloc(sizeof(pointset));
+	c.lracard=0;
+	c.lnracard=0;
+	pointset *nextLevel=(pointset*)malloc(sizeof(pointset));
 	pointset s;
 	s.size=0;						
-	pointset *lastLevel=(int*)malloc(sizeof(pointset));
+	pointset *lastLevel=(pointset*)malloc(sizeof(pointset));
 	lastLevel[0]=s;
 	int sizeoflast=1;
 	int sizeofnext=0;
 	
-	while (lastLevel!=NULL) {								// we initialize lastLevel as a set containing only an empty set of points
+	while (lastLevel!=NULL){								// we initialize lastLevel as a set containing only an empty set of points
 		for (int i=0; i<sizeoflast;i++){					// and we loop until lastLevel is an empty set itself
 			pointset r = lastLevel[i];						// for each set of points in lastLevel
 			for (int j=0; j<c.nrep; j++){					// we try adding each representants of equivalency classes of primary subgraph	
 				pointset rprime;
+				for (int x=0; x<r.size; x++)
+					printf("%d|",r.members[x]);
+				printf("\n");
 				rprime.size=0;
 				int alreadyin = 0;
+				printf("%d/%d %d/%d\n", i, sizeoflast, j, c.nrep);
+				rprime.members=(int*)malloc(sizeof(int));
 
 				for (int k=0;k<r.size;k++){
 					rprime.size++;
 					realloc (rprime.members, rprime.size*sizeof(int));
-					rprime.members[k]=r[k];
+					rprime.members[k]=r.members[k];
 					if (rprime.members[k]==c.tc[j])
 						alreadyin = 1;
 				}
-				
-				if (already==0) {							// if the vertex was already in the pointset, we have nothing to add, so we pass
-					rprime.members[r.size+1]=c.tc[j];		// on to the next representant. Else, we add it to a pointset and compute the
-					pointset n;								// neighboorhood of this new set of points
+
+				if (alreadyin==0) {							// if the vertex was already in the pointset, we have nothing to add, so we pass
+					rprime.size++;							// on to the next representant. Else, we add it to a pointset and compute the
+															// neighboorhood of this new set of points
+
+					realloc (rprime.members, rprime.size*sizeof(int));
+
+					rprime.members[rprime.size-1]=c.tc[j];		
+					pointset n;
+					n.members=(int*)malloc(sizeof(int));								
 					n.size=0;
+
 					for (int k=0;k<rprime.size;k++){
 
 						for (int l=0; l<c.nrepincomp; l++){	// for each point of this new set we get neighboorhoods
-
-							if(c.matrixrevisited[rprime.members[l]*c.nrepincomp + l]==1){
+							printf("%d %d %d\n",rprime.members[k], c.complementtc[l], g.matrix[rprime.members[k]*g.size + c.complementtc[l]]);
+							if(g.matrix[rprime.members[k]*g.size + c.complementtc[l]]==1){
 															// for each representant of equivalence classes in the secondary subgraph, we
 															// check if they are neighboors of the point computed
 
@@ -507,23 +528,36 @@ int secondpreprocess (dectree t, cutdata c){
 
 									if (n.members[m]==c.complementtc[l]){
 										alreadyin=1;
-										break;
 									}
 
 								}
-
+								printf( "SALUT %d\n", alreadyin);
 								if (alreadyin==0){			// else, we add it
-									realloc	(n.members, (n.size+1)*sizeof(int));
-									n.members[n.size]=c.complementtc[l];
 									n.size++;
+									realloc	(n.members, (n.size)*sizeof(int));
+									n.members[n.size-1]=c.complementtc[l];
+
 								}
 							}
 						}
 					}
+					printf("rprime=");
+					for (int w=0;w<rprime.size;w++)
+						printf("%d, ", rprime.members[w]);
+					printf("\n");
+					
+					printf("n=");
+					for (int x=0;x<n.size;x++)
+						printf("%d, ", n.members[x]);
+					printf("\n");
 
 					// we then check if this neighboorhood is already in lnra
 					int alreadyin = 0;
+					
+					if (n.size==0)
+						alreadyin = 1;
 					for (int k=0; k<c.lnracard; k++) {
+
 						pointset tmp = c.lnra[k];
 						int common = 0;
 						for (int l = 0; l<n.size; l++){
@@ -534,26 +568,30 @@ int secondpreprocess (dectree t, cutdata c){
 								}
 							}
 						}
-						
+
 						if (common == n.size){							// if this number is equal to the size of n, n is already in lnra
 							alreadyin = 1;
 							break;
 						}
 					}
 
-					if (already == 0) {									// if n isn't in lnra, we going to add it and the rprime associated
+					if (alreadyin == 0) {								// if n isn't in lnra, we going to add it and the rprime associated
+						printf("YO?\n");						
 						c.lracard++;
-						realloc (c.lra, c.lracard*sizeof(pointset));
+						//realloc (c.lra, c.lracard*sizeof(pointset));
 						c.lra[c.lracard-1]=rprime;
-
+						printf("YO?\n\n");						
 						sizeofnext++;
-						realloc(nextLevel, sizeofnext*sizeof(pointset));
+						//realloc(nextLevel, sizeofnext*sizeof(pointset));
+
 						nextLevel[sizeofnext-1]=rprime;
-
+						for (int y=0;y<nextLevel[sizeofnext-1].size;y++)
+							printf("%d ", nextLevel[sizeofnext-1].members[y]);
+						printf("YO?\n");						
 						c.lnracard++;
-						realloc(c.lnra, c.lnracard*sizeof(pointset));
+						//realloc(c.lnra, c.lnracard*sizeof(pointset));
 						c.lnra[c.lnracard-1]=n;
-
+						printf("YO?\n");						
 						realloc(c.assoc, c.lracard*2*sizeof(pointset));
 						c.assoc[c.lracard*2-2]=rprime;
 						c.assoc[c.lracard*2-1]=n;
@@ -562,12 +600,22 @@ int secondpreprocess (dectree t, cutdata c){
 
 				}
 
-				
+
 			}
 		}
 		lastLevel=nextLevel;											// we loop back until no representating set and no neighboorhoods 
-		nextLevel=NULL;													// are interesting enough to be added
+						printf("CHECK ALLO? = ");
+						for (int lama=0;lama<sizeofnext;lama++){
+						for (int y=0;y<nextLevel[lama].size;y++)
+							printf("%d ", nextLevel[lama].members[y]);
+						printf("\n");					
+						}			
+		nextLevel=NULL;			// are interesting enough to be added
+		
+		sizeoflast=sizeofnext;
+		printf("size of last: %d\n", sizeoflast);
+		sizeofnext=0;
 	}
 
-	return EXIT_SUCCESS;
+	return c;
 }

@@ -6,8 +6,8 @@
 TARGET = bin/main
 
 CC = gcc
-CFLAGS = 
-LDFLAGS = 
+CFLAGS = -g
+LDFLAGS = -g
 
 OBJECTS = $(patsubst src/%.c, obj/%.o, $(wildcard src/*.c))
 HEADERS = $(wildcard include/*.h)
