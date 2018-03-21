@@ -47,6 +47,9 @@ typedef struct cutdata {
 	pointset *assoc;
 
 	pointset *m;
+	pointset *mcomp;
+
+	int* tab;
 } cutdata;
 
 
