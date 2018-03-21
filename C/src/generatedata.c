@@ -163,7 +163,6 @@ dectree lookTree (FILE *f, char *node){
 	while ((found==0)&&(fgets(buffer,80,f)!=NULL)){				// we read lines until we find the node we're looking for or reach the end of the file. TODO: Had an error if we reach the end of the file without finding the node we're looking for
 		
 		char* a = strtok(buffer," ");
-
 		if (strcmp(a,node)==0){									// if the first word of the line is the label we're looking for, we're at
 																// the right line and we then process the data exactly as in the previous
 																// function

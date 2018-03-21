@@ -34,7 +34,7 @@ between those two sets of data, to be stored in the cutdata
 */
 cutdata secondpreprocess (dectree t, cutdata c, graph g);
 
-
+cutdata thirdpreprocess (dectree t, cutdata c, graph g);
 
 
 #endif

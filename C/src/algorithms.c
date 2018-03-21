@@ -471,34 +471,39 @@ between those two sets of data, to be stored in the cutdata
 */
 cutdata secondpreprocess (dectree t, cutdata c, graph g){
 
-	c.lra=(pointset*)malloc(sizeof(pointset));
-	c.lnra=(pointset*)malloc(sizeof(pointset));
+	c.lra=(pointset*)malloc(c.nrep*c.nrep*c.nrep*c.nrep*sizeof(pointset));
+	c.lnra=(pointset*)malloc(c.nrep*c.nrep*c.nrep*c.nrep*sizeof(pointset));
 	c.lracard=0;
 	c.lnracard=0;
-	pointset *nextLevel=(pointset*)malloc(sizeof(pointset));
+	pointset *nextLevel=(pointset*)malloc(c.nrep*c.nrep*c.nrep*c.nrep*sizeof(pointset));
 	pointset s;
 	s.size=0;						
-	pointset *lastLevel=(pointset*)malloc(sizeof(pointset));
+	pointset *lastLevel=(pointset*)malloc(c.nrep*c.nrep*c.nrep*c.nrep*sizeof(pointset));
 	lastLevel[0]=s;
 	int sizeoflast=1;
 	int sizeofnext=0;
+	c.assoc=(pointset*)malloc(c.nrep*c.nrep*c.nrep*c.nrep*sizeof(pointset));
 	
-	while (lastLevel!=NULL){								// we initialize lastLevel as a set containing only an empty set of points
+	while (sizeoflast!=0){								// we initialize lastLevel as a set containing only an empty set of points
 		for (int i=0; i<sizeoflast;i++){					// and we loop until lastLevel is an empty set itself
-			pointset r = lastLevel[i];						// for each set of points in lastLevel
+			pointset r;
+			r.size = lastLevel[i].size;
+			r.members=(int*)malloc(r.size*sizeof(int));
+			for (int j=0; j< r.size;j++)
+				r.members[j]=lastLevel[i].members[j];						// for each set of points in lastLevel
 			for (int j=0; j<c.nrep; j++){					// we try adding each representants of equivalency classes of primary subgraph	
 				pointset rprime;
-				for (int x=0; x<r.size; x++)
+			/*	for (int x=0; x<r.size; x++)
 					printf("%d|",r.members[x]);
-				printf("\n");
+				printf("\n");*/
 				rprime.size=0;
 				int alreadyin = 0;
-				printf("%d/%d %d/%d\n", i, sizeoflast, j, c.nrep);
-				rprime.members=(int*)malloc(sizeof(int));
+				//printf("%d/%d %d/%d\n", i, sizeoflast, j, c.nrep);
+				rprime.members=(int*)malloc((r.size+1)*sizeof(int));
 
 				for (int k=0;k<r.size;k++){
 					rprime.size++;
-					realloc (rprime.members, rprime.size*sizeof(int));
+					//realloc (rprime.members, rprime.size*sizeof(int));
 					rprime.members[k]=r.members[k];
 					if (rprime.members[k]==c.tc[j])
 						alreadyin = 1;
@@ -507,18 +512,18 @@ cutdata secondpreprocess (dectree t, cutdata c, graph g){
 				if (alreadyin==0) {							// if the vertex was already in the pointset, we have nothing to add, so we pass
 					rprime.size++;							// on to the next representant. Else, we add it to a pointset and compute the
 															// neighboorhood of this new set of points
-
-					realloc (rprime.members, rprime.size*sizeof(int));
+					//printf("rprime.size = %d\n",rprime.size);
+					//realloc (rprime.members, rprime.size*sizeof(int));
 
 					rprime.members[rprime.size-1]=c.tc[j];		
 					pointset n;
-					n.members=(int*)malloc(sizeof(int));								
+					n.members=(int*)malloc(c.nrepincomp*sizeof(int));								
 					n.size=0;
 
 					for (int k=0;k<rprime.size;k++){
 
 						for (int l=0; l<c.nrepincomp; l++){	// for each point of this new set we get neighboorhoods
-							printf("%d %d %d\n",rprime.members[k], c.complementtc[l], g.matrix[rprime.members[k]*g.size + c.complementtc[l]]);
+							//printf("%d %d %d\n",rprime.members[k], c.complementtc[l], g.matrix[rprime.members[k]*g.size + c.complementtc[l]]);
 							if(g.matrix[rprime.members[k]*g.size + c.complementtc[l]]==1){
 															// for each representant of equivalence classes in the secondary subgraph, we
 															// check if they are neighboors of the point computed
@@ -531,17 +536,17 @@ cutdata secondpreprocess (dectree t, cutdata c, graph g){
 									}
 
 								}
-								printf( "SALUT %d\n", alreadyin);
+								//printf( "SALUT %d\n", alreadyin);
 								if (alreadyin==0){			// else, we add it
 									n.size++;
-									realloc	(n.members, (n.size)*sizeof(int));
+									//realloc	(n.members, (n.size)*sizeof(int));
 									n.members[n.size-1]=c.complementtc[l];
 
 								}
 							}
 						}
 					}
-					printf("rprime=");
+				/*	printf("rprime=");
 					for (int w=0;w<rprime.size;w++)
 						printf("%d, ", rprime.members[w]);
 					printf("\n");
@@ -549,7 +554,7 @@ cutdata secondpreprocess (dectree t, cutdata c, graph g){
 					printf("n=");
 					for (int x=0;x<n.size;x++)
 						printf("%d, ", n.members[x]);
-					printf("\n");
+					printf("\n");*/
 
 					// we then check if this neighboorhood is already in lnra
 					int alreadyin = 0;
@@ -574,27 +579,34 @@ cutdata secondpreprocess (dectree t, cutdata c, graph g){
 							break;
 						}
 					}
-
+						//printf("ON PROGRESSE\n");
 					if (alreadyin == 0) {								// if n isn't in lnra, we going to add it and the rprime associated
-						printf("YO?\n");						
+						//printf("YO?\n");						
 						c.lracard++;
 						//realloc (c.lra, c.lracard*sizeof(pointset));
 						c.lra[c.lracard-1]=rprime;
-						printf("YO?\n\n");						
+
 						sizeofnext++;
+						//printf("YO? %d\n\n",sizeofnext);						
 						//realloc(nextLevel, sizeofnext*sizeof(pointset));
 
-						nextLevel[sizeofnext-1]=rprime;
-						for (int y=0;y<nextLevel[sizeofnext-1].size;y++)
+						//nextLevel[sizeofnext-1]=rprime;
+						//printf("sizeofnext=%d, %d\n", sizeofnext, rprime.size);
+						nextLevel[sizeofnext-1].size=rprime.size;
+						nextLevel[sizeofnext-1].members=(int*)malloc(rprime.size*sizeof(int));
+						for (int y=0; y<rprime.size; y++)
+							nextLevel[sizeofnext-1].members[y]=rprime.members[y];
+						/*for (int y=0;y<nextLevel[sizeofnext-1].size;y++)
 							printf("%d ", nextLevel[sizeofnext-1].members[y]);
-						printf("YO?\n");						
+						printf("YO?\n");*/						
 						c.lnracard++;
 						//realloc(c.lnra, c.lnracard*sizeof(pointset));
 						c.lnra[c.lnracard-1]=n;
-						printf("YO?\n");						
-						realloc(c.assoc, c.lracard*2*sizeof(pointset));
+						//printf("YO?\n");						
+						//realloc(c.assoc, c.lracard*2*sizeof(pointset));
 						c.assoc[c.lracard*2-2]=rprime;
 						c.assoc[c.lracard*2-1]=n;
+				//printf("what's the size? it's size to get %d\n",nextLevel[sizeofnext-1].size);
 					}
 					
 
@@ -602,19 +614,75 @@ cutdata secondpreprocess (dectree t, cutdata c, graph g){
 
 
 			}
+			
 		}
 		lastLevel=nextLevel;											// we loop back until no representating set and no neighboorhoods 
-						printf("CHECK ALLO? = ");
+					/*	printf("CHECK ALLO? = ");
 						for (int lama=0;lama<sizeofnext;lama++){
-						for (int y=0;y<nextLevel[lama].size;y++)
-							printf("%d ", nextLevel[lama].members[y]);
-						printf("\n");					
-						}			
+						for (int y=0;y<lastLevel[lama].size;y++)
+							printf("%d ", lastLevel[lama].members[y]);
+						printf("\n");				
+						printf("and the size be %d\n", lastLevel[lama].size);	
+						}			*/
 		nextLevel=NULL;			// are interesting enough to be added
-		
+		nextLevel=(pointset*)malloc(c.nrep*c.nrep*c.nrep*c.nrep*sizeof(pointset));
 		sizeoflast=sizeofnext;
-		printf("size of last: %d\n", sizeoflast);
+		//printf("size of last: %d\n", sizeoflast);
 		sizeofnext=0;
+	}
+
+	return c;
+}
+
+cutdata thirdpreprocess (dectree t, cutdata c, graph g){
+	c.m=(pointset*)malloc(c.lracard*c.nrep*sizeof(pointset));
+	for (int i=0;i<c.nrep;i++){
+		int v = c.tc[i];
+		for (int j=0;j<c.lracard;j++){
+			pointset r = c.lra[j];
+		
+			int alreadyin = 0;
+			for (int k=0;k<r.size;k++){
+				if (r.members[k]==v)
+					alreadyin=1;
+			}
+
+			if (alreadyin==0){
+				r.size++;
+				r.members[r.size-1]=v;
+			}
+
+			pointset n;
+			n.size=0;
+			n.members = (int*)malloc(c.nrepincomp*sizeof(pointset));
+
+			for (int k=0;k<c.nrepincomp;k++){
+				int neighboor=0;
+				for (int l=0;l<r.size;l++){
+					if (g.matrix[r.members[l]*g.size+c.complementtc[k]]==1)
+						neighboor=1;
+				}
+				if (neighboor==1){
+					n.size++;
+					n.members[n.size-1]=c.complementtc[k];
+				}
+			}
+
+			for (int k=0; k<c.lnracard;k++){
+				int common = 0;
+				for (int l=0; l<n.size;l++){
+					for (int m=0; m<c.lnra[k].size; m++){
+						if (n.members[l]==c.lnra[k].members[m])
+							common++;
+					}
+				}
+
+				if (common=n.size){
+					c.m[i*c.lracard+j]=c.assoc[2*k];
+					break;
+				}
+			}
+		}
 	}
 
 	return c;
