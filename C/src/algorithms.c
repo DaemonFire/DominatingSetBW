@@ -82,7 +82,7 @@ This first pre-process takes a graph, its decomposition tree and a cut of this d
 classes, the output being the lists of representants of the equivalency classes of both primary and secondary sub-graphs, their numbers
 and two lists which associate each point of a subgraph to the representant of its equivalency class 
 */
-cutdata firstpreprocess(graph g, dectree t, cutdata c){
+cutdata firstpreprocess(graph g,  cutdata c){
 
 	int *twinsleft = (int*)malloc(2*c.na*c.na*sizeof(int));			// we have at most na squared twin pairs, in the case of a complete graph
 	int *twinsright = (int*)malloc(2*c.nacomp*c.nacomp*sizeof(int));
@@ -128,7 +128,9 @@ cutdata firstpreprocess(graph g, dectree t, cutdata c){
 		}															// be the one with the greatest index of its equivalency class
 	}																// if that's the case, this vertex becomes its own representant
 
-
+	/*printf("POINTTOREP= \n");
+	for (int i=0;i<c.na;i++)
+		printf("%d -> %d\n", c.pointtorep[i*2], c.pointtorep[i*2+1]);*/
 	// we do the exact same thing for the complementary of A, the secondary sub-graph
 	for (int i=0;i<c.nacomp;i++){
 		c.pointtorepincomp[i*2]=c.acomp[i];
@@ -155,6 +157,8 @@ cutdata firstpreprocess(graph g, dectree t, cutdata c){
 
 	// now that we have computed equivalency class and associated each verted to the representant of its class, we list those representants
 	c.tc=(int*)malloc(c.na*sizeof(int));
+	for (int i=0;i<c.na;i++)
+		c.tc[i]=-1;
 	c.complementtc=(int*)malloc(c.nacomp*sizeof(int));
 	int cursor = 0;
 	for (int i=0;i<c.na;i++){
@@ -172,7 +176,7 @@ cutdata firstpreprocess(graph g, dectree t, cutdata c){
 	}
 
 	c.nrep=cursor;											// this cursor has counted all representatives and we store that
-	realloc(c.tc,cursor*sizeof(int));						// we reallocate our pointer in order not to waste memory
+	//realloc(c.tc,cursor*sizeof(int));						// we reallocate our pointer in order not to waste memory
 
 
 	// we do the same for secondary sub-graph
@@ -191,19 +195,19 @@ cutdata firstpreprocess(graph g, dectree t, cutdata c){
 		}
 	}
 	c.nrepincomp=cursor;
-	realloc(c.complementtc,cursor*sizeof(int));
+	//realloc(c.complementtc,cursor*sizeof(int));
 
 
 	/*
 	 now that we have reduced the graph to equivalency classes we'd like to reduce the matrix to the representants of those equivalency
 	classes in order to speed up future computations ever further
 	*/
-	for (int i=0;i<c.na;i++){
+	/*for (int i=0;i<c.na;i++){
 		for (int j=0;j<c.nacomp;j++){
 			printf("%d| ", c.matrixrevisited[i*c.nacomp+j]);
 		}
 		printf("\n");
-	}
+	}*/
 
 	int *tmp = (int*) malloc(c.nrep*c.nrepincomp*sizeof(int));
 	for (int i=0;i<c.nrep;i++){
@@ -478,11 +482,12 @@ cutdata secondpreprocess (dectree t, cutdata c, graph g){
 	pointset *nextLevel=(pointset*)malloc(c.nrep*c.nrep*c.nrep*c.nrep*sizeof(pointset));
 	pointset s;
 	s.size=0;						
-	pointset *lastLevel=(pointset*)malloc(c.nrep*c.nrep*c.nrep*c.nrep*sizeof(pointset));
+	pointset *lastLevel=(pointset*)malloc(c.nrep*c.nrep*c.nrepincomp*c.nrepincomp*sizeof(pointset));
 	lastLevel[0]=s;
 	int sizeoflast=1;
 	int sizeofnext=0;
-	c.assoc=(pointset*)malloc(c.nrep*c.nrep*c.nrep*c.nrep*sizeof(pointset));
+	c.assoc=(pointset*)malloc(2*c.nrep*c.nrep*c.nrepincomp*c.nrepincomp*sizeof(pointset));
+	//printf("c.nrep=%d, c.nrepincomp=%d \n",c.nrep, c.nrepincomp);
 	c.lra[0]=s;
 	c.lnra[0]=s;
 	c.assoc[0]=s;
@@ -492,11 +497,18 @@ cutdata secondpreprocess (dectree t, cutdata c, graph g){
 		for (int i=0; i<sizeoflast;i++){					// and we loop until lastLevel is an empty set itself
 			pointset r;
 			r.size = lastLevel[i].size;
-			r.members=(int*)malloc(r.size*sizeof(int));
+			/*printf("La taille de r c'est %d et Ca c'est r: ",r.size);
+			for (int j=0; j<lastLevel[i].size;j++)
+				printf("%d ", lastLevel[i].members[j]);
+			printf("\n");*/
+			if(r.size!=0)
+				r.members=(int*)malloc(r.size*sizeof(int));
+
 			for (int j=0; j< r.size;j++)
 				r.members[j]=lastLevel[i].members[j];						// for each set of points in lastLevel
 			for (int j=0; j<c.nrep; j++){					// we try adding each representants of equivalency classes of primary subgraph	
 				pointset rprime;
+
 			/*	for (int x=0; x<r.size; x++)
 					printf("%d|",r.members[x]);
 				printf("\n");*/
@@ -504,7 +516,7 @@ cutdata secondpreprocess (dectree t, cutdata c, graph g){
 				int alreadyin = 0;
 				//printf("%d/%d %d/%d\n", i, sizeoflast, j, c.nrep);
 				rprime.members=(int*)malloc((r.size+1)*sizeof(int));
-
+			//printf("Jambon\n");
 				for (int k=0;k<r.size;k++){
 					rprime.size++;
 					//realloc (rprime.members, rprime.size*sizeof(int));
@@ -585,6 +597,7 @@ cutdata secondpreprocess (dectree t, cutdata c, graph g){
 					}
 						//printf("ON PROGRESSE\n");
 					if (alreadyin == 0) {								// if n isn't in lnra, we going to add it and the rprime associated
+
 						//printf("YO?\n");						
 						c.lracard++;
 						//realloc (c.lra, c.lracard*sizeof(pointset));
@@ -608,6 +621,7 @@ cutdata secondpreprocess (dectree t, cutdata c, graph g){
 						c.lnra[c.lnracard-1]=n;
 						//printf("YO?\n");						
 						//realloc(c.assoc, c.lracard*2*sizeof(pointset));
+
 						c.assoc[c.lracard*2-2]=rprime;
 						c.assoc[c.lracard*2-1]=n;
 				//printf("what's the size? it's size to get %d\n",nextLevel[sizeofnext-1].size);
@@ -639,12 +653,17 @@ cutdata secondpreprocess (dectree t, cutdata c, graph g){
 }
 
 cutdata thirdpreprocess (dectree t, cutdata c, graph g){
+
 	c.m=(pointset*)malloc(c.lracard*c.nrep*sizeof(pointset));
 	for (int i=0;i<c.nrep;i++){
 		int v = c.tc[i];
 		for (int j=0;j<c.lracard;j++){
 			pointset r = c.lra[j];
-		
+			pointset rprime;
+			rprime.size=r.size;
+			rprime.members=(int*)malloc((r.size+1)*sizeof(int));
+			for (int k=0;k<r.size;k++)
+				rprime.members[k]=r.members[k];
 			int alreadyin = 0;
 			for (int k=0;k<r.size;k++){
 				if (r.members[k]==v)
@@ -652,8 +671,8 @@ cutdata thirdpreprocess (dectree t, cutdata c, graph g){
 			}
 
 			if (alreadyin==0){
-				r.size++;
-				r.members[r.size-1]=v;
+				rprime.size++;
+				rprime.members[r.size]=v;
 			}
 
 			pointset n;
@@ -666,6 +685,7 @@ cutdata thirdpreprocess (dectree t, cutdata c, graph g){
 					if (g.matrix[r.members[l]*g.size+c.complementtc[k]]==1)
 						neighboor=1;
 				}
+
 				if (neighboor==1){
 					n.size++;
 					n.members[n.size-1]=c.complementtc[k];
@@ -694,7 +714,12 @@ cutdata thirdpreprocess (dectree t, cutdata c, graph g){
 		int v = c.complementtc[i];
 		for (int j=0;j<c.lnracard;j++){
 			pointset r = c.lnra[j];
-		
+			pointset rprime;
+			rprime.size=r.size;
+			rprime.members=(int*)malloc((r.size+1)*sizeof(int));
+			for (int k=0;k<r.size;k++)
+				rprime.members[k]=r.members[k];
+
 			int alreadyin = 0;
 			for (int k=0;k<r.size;k++){
 				if (r.members[k]==v)
@@ -702,8 +727,8 @@ cutdata thirdpreprocess (dectree t, cutdata c, graph g){
 			}
 
 			if (alreadyin==0){
-				r.size++;
-				r.members[r.size-1]=v;
+				rprime.size++;
+				rprime.members[r.size]=v;
 			}
 
 			pointset n;
@@ -743,31 +768,70 @@ cutdata thirdpreprocess (dectree t, cutdata c, graph g){
 }
 
 int toplevelalgorithm (dectree t, graph g){
-
+	//printf("bah pourquoi? :'( \n");
 	if ((t.right==NULL)||(t.left==NULL))
 		return EXIT_FAILURE;
 
 	cutdata c1 = cutThatTree (g, t, 0);
-	c1 = firstpreprocess (g,t,c1);
+	/*	printf("na= ");
+		for (int i=0;i<c1.nacomp;i++)
+			printf("%d ",c1.acomp[i]);
+		printf("\n");*/
+	c1 = firstpreprocess (g,c1);
+	/*printf("tc= ");
+	for (int i=0;i<c1.nrep;i++)
+		printf("%d ", c1.tc[i]);
+	printf("\n");
+*/
 	c1 = secondpreprocess (t, c1, g);
+/*
+	printf("lra= \n");
+	for (int i=0;i<c1.lracard;i++){
+		for (int j=0;j<c1.lra[i].size;j++)
+			printf("%d ", c1.lra[i].members[j]);
+		printf("\n");
+	}
+*/
 	c1 = thirdpreprocess (t, c1, g);
+	//printf("non?\n");
 
 	c1.tab = (int*)malloc(c1.lracard*c1.lnracard*sizeof(int));
 	for (int i= 0; i<c1.lracard*c1.lnracard; i++)
 		c1.tab[i]=-1;
+	//printf("on se fait l'autre?\n");
 
 	cutdata c2 = cutThatTree (g, t, 1);
-	c2 = firstpreprocess (g,t,c2);
+/*
+		printf("na= ");
+		for (int i=0;i<c2.nacomp;i++)
+			printf("%d ",c2.acomp[i]);
+		printf("\n");
+*/
+	c2 = firstpreprocess (g,c2);
+/*
+	printf("tc= ");
+	for (int i=0;i<c2.nrep;i++)
+		printf("%d ", c2.tc[i]);
+	printf("\n");
+*/
 	c2 = secondpreprocess (t, c2, g);
+/*
+	printf("lra= \n");
+	for (int i=0;i<c2.lracard;i++){
+		for (int j=0;j<c2.lra[i].size;j++)
+			printf("%d ", c2.lra[i].members[j]);
+		printf("\n");
+	}
+*/
 	c2 = thirdpreprocess (t, c2, g);
-
-	c1.tab = (int*)malloc(c2.lracard*c2.lnracard*sizeof(int));
+	//printf("non?\n");
+	c2.tab = (int*)malloc(c2.lracard*c2.lnracard*sizeof(int));
 	for (int i= 0; i<c2.lracard*c2.lnracard; i++)
 		c2.tab[i]=-1;
 
-	cutdata *p  = stepalgorithm (*(t.left), g);
-	cutdata *q = stepalgorithm (*(t.right), g);
-
+	cutdata *p  = stepalgorithm (t, *(t.left), g);
+	cutdata *q = stepalgorithm (t, *(t.right), g);
+	printf("J EN SUIS DEJA LA???\n");
 	if (p!=NULL){
 		cutdata c11=p[0];
 		cutdata c12=p[1];
@@ -1330,7 +1394,7 @@ int toplevelalgorithm (dectree t, graph g){
 		c2.tab[2]=1;
 		c2.tab[3]=1;
 	}
-
+	printf("J EN SUIS DEJA LA???\n");
 	int size=0;
 	int c1min=-1;
 	int c2min=-1;
@@ -1355,15 +1419,24 @@ int toplevelalgorithm (dectree t, graph g){
 	return size;
 }
 
-cutdata *stepalgorithm (dectree t, graph g){
+cutdata *stepalgorithm (dectree t, dectree tparticular, graph g){
 	cutdata *c;
-
-	if ((t.right==NULL)||(t.left==NULL))
+	printf("AM I TOO SOON?\n");
+	if ((tparticular.right==NULL)||(tparticular.left==NULL))
 		c=NULL;
 
 	else {
-			cutdata c1 = cutThatTree (g, t, 0);
-		c1 = firstpreprocess (g,t,c1);
+		cutdata c1 = cutThatTree (g, tparticular, 0);
+		printf("na= ");
+		for (int i=0;i<c1.nacomp;i++)
+			printf("%d ",c1.acomp[i]);
+		printf("\n");
+		c1 = firstpreprocess (g,c1);
+		printf("tc= ");
+		for (int i=0;i<c1.nrep;i++)
+			printf("%d ",c1.tc[i]);
+		printf("\n");
+
 		c1 = secondpreprocess (t, c1, g);
 		c1 = thirdpreprocess (t, c1, g);
 
@@ -1371,18 +1444,26 @@ cutdata *stepalgorithm (dectree t, graph g){
 		for (int i= 0; i<c1.lracard*c1.lnracard; i++)
 			c1.tab[i]=-1;
 
-		cutdata c2 = cutThatTree (g, t, 1);
-		c2 = firstpreprocess (g,t,c2);
+
+		cutdata c2 = cutThatTree (g, tparticular, 1);
+		c2 = firstpreprocess (g,c2);
 		c2 = secondpreprocess (t, c2, g);
 		c2 = thirdpreprocess (t, c2, g);
 
-		c1.tab = (int*)malloc(c2.lracard*c2.lnracard*sizeof(int));
+		c2.tab = (int*)malloc(c2.lracard*c2.lnracard*sizeof(int));
 		for (int i= 0; i<c2.lracard*c2.lnracard; i++)
 			c2.tab[i]=-1;
 
-		cutdata *p  = stepalgorithm (*(t.left), g);
-		cutdata *q = stepalgorithm (*(t.right), g);
+		cutdata *p  = stepalgorithm (t, *(tparticular.left), g);
+		cutdata *q = stepalgorithm (t, *(tparticular.right), g);
 
+		printf("lra = ");
+			for (int i=0;i<c1.lracard;i++){
+				for (int j=0;j<c1.lra[i].size;j++)
+					printf("%d ", c1.lra[i].members[j]);
+				printf("\n");
+			}
+		printf("JSUIS PAS ENCORE LA???\n");
 		if (p!=NULL){
 			cutdata c11=p[0];
 			cutdata c12=p[1];
@@ -1633,7 +1714,7 @@ cutdata *stepalgorithm (dectree t, graph g){
 							}
 						}
 
-
+						printf("SALUT !!!\n");
 						for (int l=0;l<c1.lnracard;l++){
 							int common=0;
 							for (int m=0;m<c1.lnra[l].size;m++){
@@ -1648,11 +1729,13 @@ cutdata *stepalgorithm (dectree t, graph g){
 								break;
 							}
 						}
+						printf("ain= %d, bin= %d, win= %d, acin= %d, bcin= %d, wcin= %d\n", ain, bin, win, acin, bcin, wcin);
 						if ((c11.tab[ain*c11.lnracard+acin]!=-1)&&(c12.tab[bin*c12.lnracard+bcin]!=-1)){
 							if ((c1.tab[win*c1.lnracard+wcin]==-1)||(c1.tab[win*c1.lnracard+wcin]>c11.tab[ain*c11.lnracard+acin]*c12.tab[bin*c12.lnracard+bcin]))						
 								c1.tab[win*c1.lnracard+wcin]=c11.tab[ain*c11.lnracard+acin]*c12.tab[bin*c12.lnracard+bcin];
 						}					
 					}
+						printf("SALUT !!!\n");
 				}
 			
 			}
@@ -1950,5 +2033,6 @@ cutdata *stepalgorithm (dectree t, graph g){
 		c[0]=c1;
 		c[1]=c2;
 	}
+	printf("GONNA BE A HOKAGE, BELIEVE IT!\n");
 	return c;
 }

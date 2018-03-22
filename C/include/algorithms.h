@@ -2,7 +2,7 @@
 #define _ALGORITHMS_
 #include "../include/datarepresentation.h"
 
-// This function takes a graph, a decomposition tree and and int stating if we're to cut the left or right son of the tree t to create the
+// This function takes a graph, a decomposition tree and an int stating if we're to cut the left or right son of the tree t to create the
 // cut in the decomposition graph
 cutdata cutThatTree (graph g, dectree t, int choiceofson);
 
@@ -12,7 +12,7 @@ This first pre-process takes a graph, its decomposition tree and a cut of this d
 classes, the output being the lists of representants of the equivalency classes of both primary and secondary sub-graphs, their numbers
 and two lists which associate each point of a subgraph to the representant of its equivalency class 
 */
-cutdata firstpreprocess(graph g, dectree t, cutdata c);
+cutdata firstpreprocess(graph g,  cutdata c);
 
 
 
@@ -38,7 +38,7 @@ cutdata thirdpreprocess (dectree t, cutdata c, graph g);
 
 int toplevelalgorithm (dectree t, graph g);
 
-cutdata *stepalgorithm (dectree t, graph g);
+cutdata *stepalgorithm (dectree t, dectree tparticular, graph g);
 
 
 #endif
