@@ -473,7 +473,7 @@ This is the second pre-processing function. We give it a tree and a cutdata on w
 and it uses informations on representants to compute the list of representant sets, their respectives neighboorhoods and associations
 between those two sets of data, to be stored in the cutdata
 */
-cutdata secondpreprocess (dectree t, cutdata c, graph g){
+cutdata secondpreprocess (cutdata c, graph g){
 
 	c.lra=(pointset*)malloc(c.nrep*c.nrep*c.nrep*c.nrep*sizeof(pointset));
 	c.lnra=(pointset*)malloc(c.nrep*c.nrep*c.nrep*c.nrep*sizeof(pointset));
@@ -652,13 +652,21 @@ cutdata secondpreprocess (dectree t, cutdata c, graph g){
 	return c;
 }
 
-cutdata thirdpreprocess (dectree t, cutdata c, graph g){
+cutdata thirdpreprocess (cutdata c, graph g){
 
 	c.m=(pointset*)malloc(c.lracard*c.nrep*sizeof(pointset));
+	/*printf("tc= ");
+	for (int k=0;k<c.nrep;k++)
+		printf("%d ", c.tc[k]);
+	printf("\n");*/
 	for (int i=0;i<c.nrep;i++){
 		int v = c.tc[i];
 		for (int j=0;j<c.lracard;j++){
 			pointset r = c.lra[j];
+			/*printf("c.lracard = %d REGARDE COMMENT MON R IL EST \n", c.lracard);
+			for (int k=0;k<r.size;k++)
+				printf("%d ", r.members[k]);
+			printf("\n");*/
 			pointset rprime;
 			rprime.size=r.size;
 			rprime.members=(int*)malloc((r.size+1)*sizeof(int));
@@ -674,15 +682,18 @@ cutdata thirdpreprocess (dectree t, cutdata c, graph g){
 				rprime.size++;
 				rprime.members[r.size]=v;
 			}
-
+			/*printf("REGARDE COMMENT MON Rprime IL EST \n");
+			for (int k=0;k<rprime.size;k++)
+				printf("%d ", rprime.members[k]);
+			printf("\n");*/
 			pointset n;
 			n.size=0;
 			n.members = (int*)malloc(c.nrepincomp*sizeof(pointset));
 
 			for (int k=0;k<c.nrepincomp;k++){
 				int neighboor=0;
-				for (int l=0;l<r.size;l++){
-					if (g.matrix[r.members[l]*g.size+c.complementtc[k]]==1)
+				for (int l=0;l<rprime.size;l++){
+					if (g.matrix[rprime.members[l]*g.size+c.complementtc[k]]==1)
 						neighboor=1;
 				}
 
@@ -691,7 +702,10 @@ cutdata thirdpreprocess (dectree t, cutdata c, graph g){
 					n.members[n.size-1]=c.complementtc[k];
 				}
 			}
-
+			/*printf("REGARDE COMMENT MON N IL EST \n");
+			for (int k=0;k<n.size;k++)
+				printf("%d ", n.members[k]);
+			printf("\n");*/
 			for (int k=0; k<c.lnracard;k++){
 				int common = 0;
 				for (int l=0; l<n.size;l++){
@@ -701,25 +715,51 @@ cutdata thirdpreprocess (dectree t, cutdata c, graph g){
 					}
 				}
 
-				if (common=n.size){
-					c.m[i*c.lracard+j]=c.assoc[2*k];
+				if (common==n.size){
+					/*printf("FOUND IT, n.size=%d\n",n.size);
+					printf("PARCE QU EN FAIT C EST \n");
+					for (int l=0;l<c.lnra[k].size;l++)
+						printf("%d ", c.lnra[k].members[l]);
+					printf("\n");*/
+					c.m[i*c.nrep+j]=c.assoc[2*k];
 					break;
+				}
+				else {
+					pointset s;
+					s.size=0;
+					c.m[i*c.nrep+j]=s;
 				}
 			}
 		}
 	}
-
+printf("\n\nM=\n");
+						for (int l=0;l<c.lracard;l++){
+							for (int m=0;m<c.nrep;m++){
+								printf("{");
+								for (int n=0;n<(c.m[l*c.nrep+m]).size;n++)
+									printf("%d,",(c.m[l*c.nrep+m]).members[n]);
+								printf("} ");
+							}
+							printf("\n");
+						}
 	c.mcomp=(pointset*)malloc(c.lnracard*c.nrepincomp*sizeof(pointset));
+	/*printf("tc= ");
+	for (int k=0;k<c.nrep;k++)
+		printf("%d ", c.tc[k]);
+	printf("\n");*/
 	for (int i=0;i<c.nrepincomp;i++){
 		int v = c.complementtc[i];
 		for (int j=0;j<c.lnracard;j++){
 			pointset r = c.lnra[j];
+			/*printf("c.lracard = %d REGARDE COMMENT MON R IL EST \n", c.lracard);
+			for (int k=0;k<r.size;k++)
+				printf("%d ", r.members[k]);
+			printf("\n");*/
 			pointset rprime;
 			rprime.size=r.size;
 			rprime.members=(int*)malloc((r.size+1)*sizeof(int));
 			for (int k=0;k<r.size;k++)
 				rprime.members[k]=r.members[k];
-
 			int alreadyin = 0;
 			for (int k=0;k<r.size;k++){
 				if (r.members[k]==v)
@@ -730,23 +770,30 @@ cutdata thirdpreprocess (dectree t, cutdata c, graph g){
 				rprime.size++;
 				rprime.members[r.size]=v;
 			}
-
+			/*printf("REGARDE COMMENT MON Rprime IL EST \n");
+			for (int k=0;k<rprime.size;k++)
+				printf("%d ", rprime.members[k]);
+			printf("\n");*/
 			pointset n;
 			n.size=0;
 			n.members = (int*)malloc(c.nrep*sizeof(pointset));
 
 			for (int k=0;k<c.nrep;k++){
 				int neighboor=0;
-				for (int l=0;l<r.size;l++){
-					if (g.matrix[c.tc[k]*g.size+r.members[l]]==1)
+				for (int l=0;l<rprime.size;l++){
+					if (g.matrix[g.size*c.tc[k]+rprime.members[l]]==1)
 						neighboor=1;
 				}
+
 				if (neighboor==1){
 					n.size++;
 					n.members[n.size-1]=c.tc[k];
 				}
 			}
-
+			/*printf("REGARDE COMMENT MON N IL EST \n");
+			for (int k=0;k<n.size;k++)
+				printf("%d ", n.members[k]);
+			printf("\n");*/
 			for (int k=0; k<c.lracard;k++){
 				int common = 0;
 				for (int l=0; l<n.size;l++){
@@ -756,13 +803,33 @@ cutdata thirdpreprocess (dectree t, cutdata c, graph g){
 					}
 				}
 
-				if (common=n.size){
-					c.mcomp[i*c.lnracard+j]=c.assoc[2*k+1];
+				if (common==n.size){
+					/*printf("FOUND IT, n.size=%d\n",n.size);
+					printf("PARCE QU EN FAIT C EST \n");
+					for (int l=0;l<c.lnra[k].size;l++)
+						printf("%d ", c.lnra[k].members[l]);
+					printf("\n");*/
+					c.mcomp[i*c.nrepincomp+j]=c.assoc[2*k+1];
 					break;
+				}
+				else {
+					pointset s;
+					s.size=0;
+					c.mcomp[i*c.nrepincomp+j]=s;
 				}
 			}
 		}
 	}
+printf("\n\nMcomp=\n");
+						for (int l=0;l<c.lnracard;l++){
+							for (int m=0;m<c.nrepincomp;m++){
+								printf("{");
+								for (int n=0;n<(c.mcomp[l*c.nrepincomp+m]).size;n++)
+									printf("%d,",(c.mcomp[l*c.nrepincomp+m]).members[n]);
+								printf("} ");
+							}
+							printf("\n");
+						}
 
 	return c;
 }
@@ -783,16 +850,16 @@ int toplevelalgorithm (dectree t, graph g){
 		printf("%d ", c1.tc[i]);
 	printf("\n");
 */
-	c1 = secondpreprocess (t, c1, g);
-/*
-	printf("lra= \n");
+	c1 = secondpreprocess (c1, g);
+
+	printf("lra= ");
 	for (int i=0;i<c1.lracard;i++){
 		for (int j=0;j<c1.lra[i].size;j++)
 			printf("%d ", c1.lra[i].members[j]);
 		printf("\n");
 	}
-*/
-	c1 = thirdpreprocess (t, c1, g);
+
+	c1 = thirdpreprocess (c1, g);
 	//printf("non?\n");
 
 	c1.tab = (int*)malloc(c1.lracard*c1.lnracard*sizeof(int));
@@ -814,7 +881,7 @@ int toplevelalgorithm (dectree t, graph g){
 		printf("%d ", c2.tc[i]);
 	printf("\n");
 */
-	c2 = secondpreprocess (t, c2, g);
+	c2 = secondpreprocess (c2, g);
 /*
 	printf("lra= \n");
 	for (int i=0;i<c2.lracard;i++){
@@ -823,7 +890,7 @@ int toplevelalgorithm (dectree t, graph g){
 		printf("\n");
 	}
 */
-	c2 = thirdpreprocess (t, c2, g);
+	c2 = thirdpreprocess (c2, g);
 	//printf("non?\n");
 	c2.tab = (int*)malloc(c2.lracard*c2.lnracard*sizeof(int));
 	for (int i= 0; i<c2.lracard*c2.lnracard; i++)
@@ -835,7 +902,8 @@ int toplevelalgorithm (dectree t, graph g){
 	if (p!=NULL){
 		cutdata c11=p[0];
 		cutdata c12=p[1];
-
+		printf("choice of son: %d na = %d ,nacomp = %d nrep = %d nrepincomp= %d, lracard= %d, lnracard= %d\n", c11.choiceofson, c11.na, c11.nacomp, c11.nrep, c11.nrepincomp, c11.lracard, c11.lnracard);
+		printf("choice of son: %d na = %d ,nacomp = %d nrep = %d nrepincomp= %d, lracard= %d, lnracard= %d\n", c12.choiceofson, c12.na, c12.nacomp, c12.nrep, c12.nrepincomp, c12.lracard, c12.lnracard);
 
 		for (int i=0; i< c11.lracard; i++){
 			for (int j= 0;j < c12.lracard; j++){
@@ -843,7 +911,18 @@ int toplevelalgorithm (dectree t, graph g){
 					pointset ra = c11.lra[i];
 					pointset rb = c12.lra[j];
 					pointset rwc = c1.lnra[k];
-
+					printf("ra= ");
+					for (int l=0;l<ra.size;l++)
+						printf("%d ",ra.members[l]);
+					printf("\n");
+					printf("rb= ");
+					for (int l=0;l<rb.size;l++)
+						printf("%d ",rb.members[l]);
+					printf("\n");
+					printf("rwc= ");
+					for (int l=0;l<rwc.size;l++)
+						printf("%d ",rwc.members[l]);
+					printf("\n");
 					pointset ua;
 					ua.size = rb.size;
 					ua.members = (int*) malloc ((rb.size+rwc.size)*sizeof(int));
@@ -862,21 +941,30 @@ int toplevelalgorithm (dectree t, graph g){
 							ua.members[ua.size-1]=rwc.members[l];
 						}
 					}
-						
+					printf("ua= ");
+					for (int l=0;l<ua.size;l++)
+						printf("%d ",ua.members[l]);
+					printf("\n");
 					pointset rac;
 					rac.size=0;
 					rac.members= (int*)malloc(c11.lnracard*sizeof(int));
 
-
 					for (int l=0; l<ua.size; l++){
 						int z=0;
 						int y=0;
+						int x=0;
 						for (int m=0; m<c11.nacomp;m++){
 							if (c11.pointtorepincomp[2*m]==ua.members[l]){
 								z=c11.pointtorepincomp[2*m+1];
 								break;
 							}
 						} 
+						for (int m=0; m<c11.nrepincomp; m++){
+							if (c11.complementtc[m]==z){
+								x=m;
+								break;
+							}
+						}
 						for (int m=0;m<c11.lnracard;m++){
 							int common=0;
 							for (int n=0; n<rac.size; n++){
@@ -892,9 +980,19 @@ int toplevelalgorithm (dectree t, graph g){
 								break;
 							}
 						}
-						rac = c11.mcomp[y*c11.lnracard+z];
+						printf("y= %d, x= %d\n",y,x);
+						rac = c11.mcomp[y*c11.nrepincomp+x];
 					}
-
+					printf("rac= ");
+					for (int l=0;l<rac.size;l++)
+						printf("%d ",rac.members[l]);
+					printf("\n");
+					printf("\n\nMCOMP=\n");
+					for (int l=0;l<c11.lnracard;l++){
+						for (int m=0;m<c11.nrepincomp;m++)
+							printf("%d ",c11.mcomp[l*c11.nrepincomp+m]);
+						printf("\n");
+					}
 					pointset ub;
 					ub.size = ra.size;
 					ub.members = (int*) malloc ((ra.size+rwc.size)*sizeof(int));
@@ -913,21 +1011,26 @@ int toplevelalgorithm (dectree t, graph g){
 							ub.members[ub.size-1]=rwc.members[l];
 						}
 					}
-
 					pointset rbc;
 					rbc.size=0;
 					rbc.members= (int*)malloc(c12.lnracard*sizeof(int));
 
-
 					for (int l=0; l<ub.size; l++){
 						int z=0;
 						int y=0;
+						int x=0;
 						for (int m=0; m<c12.nacomp;m++){
 							if (c12.pointtorepincomp[2*m]==ub.members[l]){
 								z=c12.pointtorepincomp[2*m+1];
 								break;
 							}
 						} 
+						for (int m=0;m<c12.nrepincomp;m++){
+							if (c12.complementtc[m]==z){
+								x=m;
+								break;
+							}
+						}
 						for (int m=0;m<c12.lnracard;m++){
 							int common=0;
 							for (int n=0; n<rbc.size; n++){
@@ -943,9 +1046,8 @@ int toplevelalgorithm (dectree t, graph g){
 								break;
 							}
 						}
-						rbc = c12.mcomp[y*c12.lnracard+z];
+						rbc = c12.mcomp[y*c12.nrepincomp+x];
 					}
-
 					pointset uw;
 					uw.size = ra.size;
 					uw.members = (int*) malloc ((ra.size+rb.size)*sizeof(int));
@@ -969,16 +1071,22 @@ int toplevelalgorithm (dectree t, graph g){
 					rw.size=0;
 					rw.members= (int*)malloc(c1.lracard*sizeof(int));
 
-
 					for (int l=0; l<uw.size; l++){
 						int z=0;
 						int y=0;
+						int x=0;
 						for (int m=0; m<c1.na;m++){
 							if (c1.pointtorep[2*m]==uw.members[l]){
 								z=c1.pointtorep[2*m+1];
 								break;
 							}
 						} 
+						for (int m=0;m<c1.nrep;m++){
+							if (c11.tc[m]==z){
+								x=m;
+								break;
+							}
+						}
 						for (int m=0;m<c1.lracard;m++){
 							int common=0;
 							for (int n=0; n<rw.size; n++){
@@ -994,7 +1102,7 @@ int toplevelalgorithm (dectree t, graph g){
 								break;
 							}
 						}
-						rw = c1.m[y*c1.lracard+z];
+						rw = c1.m[y*c1.nrep+x];
 					}
 					
 					int ain=0;
@@ -1003,7 +1111,7 @@ int toplevelalgorithm (dectree t, graph g){
 					int acin=0;
 					int bcin=0;
 					int wcin=0;
-					
+						
 					for (int l=0;l<c11.lracard;l++){
 						int common=0;
 						for (int m=0;m<c11.lra[l].size;m++){
@@ -1082,7 +1190,7 @@ int toplevelalgorithm (dectree t, graph g){
 						}
 					}
 
-
+					printf("SALUT !!!\n");
 					for (int l=0;l<c1.lnracard;l++){
 						int common=0;
 						for (int m=0;m<c1.lnra[l].size;m++){
@@ -1097,11 +1205,13 @@ int toplevelalgorithm (dectree t, graph g){
 							break;
 						}
 					}
+					printf("ain= %d, bin= %d, win= %d, acin= %d, bcin= %d, wcin= %d\n", ain, bin, win, acin, bcin, wcin);
 					if ((c11.tab[ain*c11.lnracard+acin]!=-1)&&(c12.tab[bin*c12.lnracard+bcin]!=-1)){
 						if ((c1.tab[win*c1.lnracard+wcin]==-1)||(c1.tab[win*c1.lnracard+wcin]>c11.tab[ain*c11.lnracard+acin]*c12.tab[bin*c12.lnracard+bcin]))						
 							c1.tab[win*c1.lnracard+wcin]=c11.tab[ain*c11.lnracard+acin]*c12.tab[bin*c12.lnracard+bcin];
 					}					
 				}
+					printf("SALUT !!!\n");
 			}
 		
 		}
@@ -1112,12 +1222,11 @@ int toplevelalgorithm (dectree t, graph g){
 		c1.tab[2]=1;
 		c1.tab[3]=1;
 	}
-
-	
+		printf("et là j'suis où?\n");
 	if (q!=NULL){
 		cutdata c21=q[0];
 		cutdata c22=q[1];
-
+		printf("et là j'suis où?\n");
 
 		for (int i=0; i< c21.lracard; i++){
 			for (int j= 0;j < c22.lracard; j++){
@@ -1176,7 +1285,6 @@ int toplevelalgorithm (dectree t, graph g){
 						}
 						rac = c21.mcomp[y*c21.lnracard+z];
 					}
-
 					pointset ub;
 					ub.size = ra.size;
 					ub.members = (int*) malloc ((ra.size+rwc.size)*sizeof(int));
@@ -1195,11 +1303,9 @@ int toplevelalgorithm (dectree t, graph g){
 							ub.members[ub.size-1]=rwc.members[l];
 						}
 					}
-
-					pointset rbc;
+						pointset rbc;
 					rbc.size=0;
 					rbc.members= (int*)malloc(c22.lnracard*sizeof(int));
-
 
 					for (int l=0; l<ub.size; l++){
 						int z=0;
@@ -1227,7 +1333,6 @@ int toplevelalgorithm (dectree t, graph g){
 						}
 						rbc = c22.mcomp[y*c22.lnracard+z];
 					}
-
 					pointset uw;
 					uw.size = ra.size;
 					uw.members = (int*) malloc ((ra.size+rb.size)*sizeof(int));
@@ -1250,7 +1355,6 @@ int toplevelalgorithm (dectree t, graph g){
 					pointset rw;
 					rw.size=0;
 					rw.members= (int*)malloc(c2.lracard*sizeof(int));
-
 
 					for (int l=0; l<uw.size; l++){
 						int z=0;
@@ -1332,7 +1436,6 @@ int toplevelalgorithm (dectree t, graph g){
 						}
 					}
 
-
 					for (int l=0;l<c21.lnracard;l++){
 						int common=0;
 						for (int m=0;m<c21.lnra[l].size;m++){
@@ -1347,7 +1450,6 @@ int toplevelalgorithm (dectree t, graph g){
 							break;
 						}
 					}
-
 
 					for (int l=0;l<c22.lnracard;l++){
 						int common=0;
@@ -1379,10 +1481,12 @@ int toplevelalgorithm (dectree t, graph g){
 							break;
 						}
 					}
+					printf("et là j'suis où hein?\n");
 					if ((c21.tab[ain*c21.lnracard+acin]!=-1)&&(c22.tab[bin*c22.lnracard+bcin]!=-1)){
 						if ((c2.tab[win*c2.lnracard+wcin]==-1)||(c2.tab[win*c2.lnracard+wcin]>c21.tab[ain*c21.lnracard+acin]*c22.tab[bin*c22.lnracard+bcin]))						
 							c2.tab[win*c2.lnracard+wcin]=c21.tab[ain*c21.lnracard+acin]*c22.tab[bin*c22.lnracard+bcin];
-					}					
+					}	
+					printf("ah bah j'suis là!\n");				
 				}
 			}
 		
@@ -1393,7 +1497,15 @@ int toplevelalgorithm (dectree t, graph g){
 		c2.tab[1]=0;
 		c2.tab[2]=1;
 		c2.tab[3]=1;
+		printf("GONNA BE A HOKAGE, BELIEVE IT!\n");
 	}
+	printf("LA FAMILLE?\n");
+	cutdata* c;
+	c=(cutdata*)malloc(2*sizeof(cutdata));
+	c[0]=c1;
+	c[1]=c2;
+
+
 	printf("J EN SUIS DEJA LA???\n");
 	int size=0;
 	int c1min=-1;
@@ -1437,8 +1549,15 @@ cutdata *stepalgorithm (dectree t, dectree tparticular, graph g){
 			printf("%d ",c1.tc[i]);
 		printf("\n");
 
-		c1 = secondpreprocess (t, c1, g);
-		c1 = thirdpreprocess (t, c1, g);
+		c1 = secondpreprocess (c1, g);
+	printf("lra= ");
+	for (int i=0;i<c1.lracard;i++){
+		for (int j=0;j<c1.lra[i].size;j++)
+			printf("%d ", c1.lra[i].members[j]);
+		printf("\n");
+	}
+	printf("\n");
+		c1 = thirdpreprocess (c1, g);
 
 		c1.tab = (int*)malloc(c1.lracard*c1.lnracard*sizeof(int));
 		for (int i= 0; i<c1.lracard*c1.lnracard; i++)
@@ -1447,8 +1566,15 @@ cutdata *stepalgorithm (dectree t, dectree tparticular, graph g){
 
 		cutdata c2 = cutThatTree (g, tparticular, 1);
 		c2 = firstpreprocess (g,c2);
-		c2 = secondpreprocess (t, c2, g);
-		c2 = thirdpreprocess (t, c2, g);
+		c2 = secondpreprocess (c2, g);
+	printf("lra= ");
+	for (int i=0;i<c2.lracard;i++){
+		for (int j=0;j<c2.lra[i].size;j++)
+			printf("%d ", c2.lra[i].members[j]);
+		printf("\n");
+	}
+	printf("\n");
+		c2 = thirdpreprocess (c2, g);
 
 		c2.tab = (int*)malloc(c2.lracard*c2.lnracard*sizeof(int));
 		for (int i= 0; i<c2.lracard*c2.lnracard; i++)
@@ -1467,7 +1593,8 @@ cutdata *stepalgorithm (dectree t, dectree tparticular, graph g){
 		if (p!=NULL){
 			cutdata c11=p[0];
 			cutdata c12=p[1];
-
+				printf("choice of son: %d na = %d ,nacomp = %d nrep = %d nrepincomp= %d, lracard= %d, lnracard= %d\n", c11.choiceofson, c11.na, c11.nacomp, c11.nrep, c11.nrepincomp, c11.lracard, c11.lnracard);
+				printf("choice of son: %d na = %d ,nacomp = %d nrep = %d nrepincomp= %d, lracard= %d, lnracard= %d\n", c12.choiceofson, c12.na, c12.nacomp, c12.nrep, c12.nrepincomp, c12.lracard, c12.lnracard);
 
 			for (int i=0; i< c11.lracard; i++){
 				for (int j= 0;j < c12.lracard; j++){
@@ -1475,7 +1602,18 @@ cutdata *stepalgorithm (dectree t, dectree tparticular, graph g){
 						pointset ra = c11.lra[i];
 						pointset rb = c12.lra[j];
 						pointset rwc = c1.lnra[k];
-
+						printf("ra= ");
+						for (int l=0;l<ra.size;l++)
+							printf("%d ",ra.members[l]);
+						printf("\n");
+						printf("rb= ");
+						for (int l=0;l<rb.size;l++)
+							printf("%d ",rb.members[l]);
+						printf("\n");
+						printf("rwc= ");
+						for (int l=0;l<rwc.size;l++)
+							printf("%d ",rwc.members[l]);
+						printf("\n");
 						pointset ua;
 						ua.size = rb.size;
 						ua.members = (int*) malloc ((rb.size+rwc.size)*sizeof(int));
@@ -1494,7 +1632,10 @@ cutdata *stepalgorithm (dectree t, dectree tparticular, graph g){
 								ua.members[ua.size-1]=rwc.members[l];
 							}
 						}
-							
+						printf("ua= ");
+						for (int l=0;l<ua.size;l++)
+							printf("%d ",ua.members[l]);
+						printf("\n");
 						pointset rac;
 						rac.size=0;
 						rac.members= (int*)malloc(c11.lnracard*sizeof(int));
@@ -1503,12 +1644,19 @@ cutdata *stepalgorithm (dectree t, dectree tparticular, graph g){
 						for (int l=0; l<ua.size; l++){
 							int z=0;
 							int y=0;
+							int x=0;
 							for (int m=0; m<c11.nacomp;m++){
 								if (c11.pointtorepincomp[2*m]==ua.members[l]){
 									z=c11.pointtorepincomp[2*m+1];
 									break;
 								}
 							} 
+							for (int m=0; m<c11.nrepincomp; m++){
+								if (c11.complementtc[m]==z){
+									x=m;
+									break;
+								}
+							}
 							for (int m=0;m<c11.lnracard;m++){
 								int common=0;
 								for (int n=0; n<rac.size; n++){
@@ -1524,9 +1672,19 @@ cutdata *stepalgorithm (dectree t, dectree tparticular, graph g){
 									break;
 								}
 							}
-							rac = c11.mcomp[y*c11.lnracard+z];
+							printf("y= %d, x= %d\n",y,x);
+							rac = c11.mcomp[y*c11.nrepincomp+x];
 						}
-
+						printf("rac= ");
+						for (int l=0;l<rac.size;l++)
+							printf("%d ",rac.members[l]);
+						printf("\n");
+						printf("\n\nMCOMP=\n");
+						for (int l=0;l<c11.lnracard;l++){
+							for (int m=0;m<c11.nrepincomp;m++)
+								printf("%d ",c11.mcomp[l*c11.nrepincomp+m]);
+							printf("\n");
+						}
 						pointset ub;
 						ub.size = ra.size;
 						ub.members = (int*) malloc ((ra.size+rwc.size)*sizeof(int));
@@ -1554,12 +1712,19 @@ cutdata *stepalgorithm (dectree t, dectree tparticular, graph g){
 						for (int l=0; l<ub.size; l++){
 							int z=0;
 							int y=0;
+							int x=0;
 							for (int m=0; m<c12.nacomp;m++){
 								if (c12.pointtorepincomp[2*m]==ub.members[l]){
 									z=c12.pointtorepincomp[2*m+1];
 									break;
 								}
 							} 
+							for (int m=0;m<c12.nrepincomp;m++){
+								if (c12.complementtc[m]==z){
+									x=m;
+									break;
+								}
+							}
 							for (int m=0;m<c12.lnracard;m++){
 								int common=0;
 								for (int n=0; n<rbc.size; n++){
@@ -1575,7 +1740,7 @@ cutdata *stepalgorithm (dectree t, dectree tparticular, graph g){
 									break;
 								}
 							}
-							rbc = c12.mcomp[y*c12.lnracard+z];
+							rbc = c12.mcomp[y*c12.nrepincomp+x];
 						}
 
 						pointset uw;
@@ -1605,12 +1770,19 @@ cutdata *stepalgorithm (dectree t, dectree tparticular, graph g){
 						for (int l=0; l<uw.size; l++){
 							int z=0;
 							int y=0;
+							int x=0;
 							for (int m=0; m<c1.na;m++){
 								if (c1.pointtorep[2*m]==uw.members[l]){
 									z=c1.pointtorep[2*m+1];
 									break;
 								}
 							} 
+							for (int m=0;m<c1.nrep;m++){
+								if (c11.tc[m]==z){
+									x=m;
+									break;
+								}
+							}
 							for (int m=0;m<c1.lracard;m++){
 								int common=0;
 								for (int n=0; n<rw.size; n++){
@@ -1626,7 +1798,7 @@ cutdata *stepalgorithm (dectree t, dectree tparticular, graph g){
 									break;
 								}
 							}
-							rw = c1.m[y*c1.lracard+z];
+							rw = c1.m[y*c1.nrep+x];
 						}
 						
 						int ain=0;
@@ -2027,12 +2199,13 @@ cutdata *stepalgorithm (dectree t, dectree tparticular, graph g){
 			c2.tab[1]=0;
 			c2.tab[2]=1;
 			c2.tab[3]=1;
+	printf("GONNA BE A HOKAGE, BELIEVE IT!\n");
 		}
 
 		c=(cutdata*)malloc(2*sizeof(cutdata));
 		c[0]=c1;
 		c[1]=c2;
 	}
-	printf("GONNA BE A HOKAGE, BELIEVE IT!\n");
+
 	return c;
 }

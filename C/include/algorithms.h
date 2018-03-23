@@ -32,9 +32,9 @@ This is the second pre-processing function. We give it a tree and a cutdata on w
 and it uses informations on representants to compute the list of representant sets, their respectives neighboorhoods and associations
 between those two sets of data, to be stored in the cutdata
 */
-cutdata secondpreprocess (dectree t, cutdata c, graph g);
+cutdata secondpreprocess (cutdata c, graph g);
 
-cutdata thirdpreprocess (dectree t, cutdata c, graph g);
+cutdata thirdpreprocess (cutdata c, graph g);
 
 int toplevelalgorithm (dectree t, graph g);
 
