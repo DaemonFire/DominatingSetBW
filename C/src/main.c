@@ -14,8 +14,8 @@
 
 int main (int argc, char** argv){
 
-	graph g = loadgraph("kheops.points", 180);
-	dectree t = loadtree("kheops.tree");
+	graph g = loadgraph("tiefighter.points", 180);
+	dectree t = loadtree("tiefighter.tree");
 
 	int x = toplevelalgorithm (t, g);
 	printf("DO YOU BELIEVE IT? DOMINATING SET IS OF SIZE %d\n",x);
