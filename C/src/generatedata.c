@@ -62,7 +62,6 @@ graph loadgraph (char* path, int threshold) {
 		fprintf(stderr,"Error fopen");
 		perror("fopen");
 	}
-
 	g.pos = (int*)malloc(3*g.size*sizeof(int));
 	g.matrix = (int*)malloc(g.size*g.size*sizeof(int));
 
@@ -90,7 +89,7 @@ void generateEdges (graph g, int threshold){
 
 	for (int i = 0; i<g.size; i++) {
 		for (int j= 0; j<i; j++) {
-			if ((g.pos[3*i+1]-g.pos[3*j+1])*(g.pos[3*i+1]-g.pos[3*j+1])+(g.pos[3*i+2]-g.pos[3*j+2])*(g.pos[3*i+2]-g.pos[3*j+2])<(threshold*threshold)){				// then we add an edge between points that are near enough (i.e their distance squared is lower
+			if ((g.pos[3*i+1]-g.pos[3*j+1])*(g.pos[3*i+1]-g.pos[3*j+1])+(g.pos[3*i+2]-g.pos[3*j+2])*(g.pos[3*i+2]-g.pos[3*j+2])<=(threshold*threshold)){				// then we add an edge between points that are near enough (i.e their distance squared is lower
 				g.matrix[g.size*i+j]=1;																																// than the threshold squared. Adding an edge means putting 1 in the adjacency matrix
 				g.matrix[g.size*j+i]=1;
 			}
@@ -202,8 +201,8 @@ dectree lookTree (FILE *f, char *node){
 // This function computes the number of points of the graph by counting lines in the data file until it reaches the end of the document
 int computeSizeFromFile(char* path){
 	FILE *f;
-	char buffer[21];
-	
+	char buffer[80];
+
 	if ((f=fopen(path,"r"))==NULL) {
 		fprintf(stderr,"Error fopen");
 		perror("fopen");
@@ -217,4 +216,33 @@ int computeSizeFromFile(char* path){
 
 	fclose(f);
 	return i;
+}
+
+int storetree (dectree t, FILE* f, char* node){
+
+	char* str = (char*) malloc (100);
+	if (t.label!=-1){
+		sprintf(str, "%s %d\n", node, t.label);		
+		fwrite ( str, strlen(str), 1, f);	
+	}
+	else {
+
+
+		char* tmp1 = (char*)malloc(strlen(node)+1);
+		char* tmp2 = (char*)malloc(strlen(node)+1);
+		for (int i=0;i<strlen(node);i++){
+			tmp1[i]=node[i];
+			tmp2[i]=node[i];
+		}
+		tmp1[strlen(node)]='1';
+		tmp2[strlen(node)]='2';
+		sprintf(str, "%s -1 %s %s\n", node, tmp1, tmp2);
+
+		fwrite (str, strlen(str), 1, f);	
+	//printf("YP %s %s\n",tmp1,tmp2);
+		storetree(*(t.left), f, tmp1);
+		storetree(*(t.right), f, tmp2);
+	}
+
+	return EXIT_SUCCESS;
 }

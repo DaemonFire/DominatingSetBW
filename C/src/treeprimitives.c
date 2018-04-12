@@ -70,3 +70,121 @@ int getnumberofleaves (dectree t){
 
 	return n;
 }
+
+dectree *generateTree (pointset p, graph g, int verthor){
+	dectree *t;
+	t = (dectree*)malloc(sizeof(dectree));
+	pointset p1;
+	pointset p2;
+	p1.size=0;
+	p2.size=0;
+	p1.members=(int*)malloc(p.size*sizeof(int));
+	p2.members=(int*)malloc(p.size*sizeof(int));
+
+	int vnext=0;
+	if (p.size==0)
+		return NULL;
+	else if (p.size==1){
+
+		(*t).label=p.members[0];
+		(*t).left=NULL;
+		(*t).right=NULL;
+
+	}
+	else if (p.size==2){
+
+		(*t).label=-1;
+		(*t).left=(dectree*)malloc(sizeof(dectree));
+		(*t).right=(dectree*)malloc(sizeof(dectree));
+
+		dectree *t1;
+		dectree *t2;
+		t1=(dectree*)malloc(sizeof(dectree));
+		t2=(dectree*)malloc(sizeof(dectree));
+		(*t).left=t1;
+		(*t).right=t2;
+
+		(*t1).label=p.members[0];
+
+		(*t1).left=NULL;
+		(*t1).right=NULL;
+
+		(*t2).label=p.members[1];
+		(*t2).left=NULL;
+		(*t2).right=NULL;
+	}
+	else {
+		if (verthor==0){
+			int xmoy=0;
+			for (int i=0;i<p.size;i++){
+				xmoy+=g.pos[2*p.members[i]];
+			}
+			xmoy=xmoy/p.size;
+			
+			for (int i=0;i<p.size;i++){
+				if (g.pos[2*p.members[i]]<xmoy){
+					p1.size++;
+					p1.members[p1.size-1]=p.members[i];
+				}
+				else {
+					p2.size++;
+					p2.members[p2.size-1]=p.members[i];
+				}
+			}
+			if (p1.size==0){
+				p1.size++;
+				p1.members[0]=p2.members[p2.size-1];
+				p2.size--;
+			}
+			if (p2.size==0){
+				p2.size++;
+				p2.members[0]=p1.members[p1.size-1];
+				p1.size--;
+			}
+
+			vnext=1;
+		}
+
+		if (verthor==1){
+			int ymoy=0;
+			for (int i=0;i<p.size;i++){
+				ymoy+=g.pos[2*p.members[i]+1];
+			}
+			ymoy=ymoy/p.size;
+			
+			for (int i=0;i<p.size;i++){
+				if (g.pos[2*p.members[i]+1]<ymoy){
+					p1.size++;
+					p1.members[p1.size-1]=p.members[i];
+				}
+				else {
+					p2.size++;
+					p2.members[p2.size-1]=p.members[i];
+				}
+			}
+			if (p1.size==0){
+				p1.size++;
+				p1.members[0]=p2.members[p2.size-1];
+				p2.size--;
+			}
+			if (p2.size==0){
+				p2.size++;
+				p2.members[0]=p1.members[p1.size-1];
+				p1.size--;
+			}
+
+			vnext=0;
+		}
+
+
+		(*t).label=-1;
+
+		(*t).left=(dectree*)malloc(sizeof(dectree));
+		(*t).left=generateTree(p1,g,vnext);
+		(*t).right=(dectree*)malloc(sizeof(dectree));
+		(*t).right=generateTree(p2,g,vnext);
+
+	}
+	
+	return t;
+}

@@ -25,8 +25,6 @@ typedef struct pointset{
 This structure is linked to a cut of the decomposition tree t (cut of the left or right son, depending on choiceofson value, 0 or 1). It will be used by the algorithms and contains, the matrix of adjacency limited to the concerned points (giving infos about edges between points of the two sub-graphs thus formed), the numbers and lists of points in each of the subgraphs, the number and list of representants of equivalency classes in both sub-graphs, a list of every points of each subgraph associated to the representant of its equivalency class, the list of representative sets (see second preprocessing) in the primary sub-graph, the list of neighboorhoods of each representative set of the primary sub-graph in the second sub-graph and a list stating the associations between each representative set and his neighboorhood
 */
 typedef struct cutdata {
-	dectree t;
-	int choiceofson;
 	int *matrixrevisited;
 	int na;
 	int *a;

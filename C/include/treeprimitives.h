@@ -9,4 +9,5 @@ int getallleaves(dectree t, int *list);
 // This function allows for computation of the number of leaves inside a tree (and therefore, a subtree), which will be useful if we want to allocate memory for lists that will be filled by leaves's labels in getallleaves function
 int getnumberofleaves (dectree t);
 
+dectree *generateTree (pointset p, graph g, int verthor);
 #endif

@@ -38,7 +38,7 @@ cutdata thirdpreprocess (cutdata c, graph g);
 
 int toplevelalgorithm (dectree t, graph g);
 
-cutdata *stepalgorithm (dectree t, dectree tparticular, graph g);
+cutdata *stepalgorithm (dectree tparticular, graph g);
 
 
 #endif

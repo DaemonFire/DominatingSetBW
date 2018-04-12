@@ -32,4 +32,6 @@
 // Once your graph is loaded, it's wise to load up the decomposition tree for this graph, which will be used by the algorithm we implement here.
 	int computeSizeFromFile (char* path);
 
+	int storetree (dectree t, FILE* f, char* node);
+
 #endif
