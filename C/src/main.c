@@ -13,8 +13,9 @@
 #include <fcntl.h>
 
 int main (int argc, char** argv){
-
-	graph g = loadgraph("antoine2.points", 180);
+	if (argc!=2)
+		return EXIT_FAILURE;
+	graph g = loadgraph(argv[1], 180);
 	pointset p;
 	p.size=g.size;
 	p.members=(int*)malloc(g.size*sizeof(int));
@@ -24,7 +25,7 @@ int main (int argc, char** argv){
 	}
 	//dectree t = loadtree("tiefighter.tree");
 	dectree *t = generateTree(p,g,0);
-
+/*
 	FILE *f;
 	if ((f=fopen("arbre.tree","r"))==NULL) {
 		fprintf(stderr,"Error fopen");
@@ -32,7 +33,7 @@ int main (int argc, char** argv){
 	}
 
 
-	storetree (*t, f, "0");
+	storetree (*t, f, "0");*/
 	int x = toplevelalgorithm (*t, g);
 
 	printf("Minimum Dominating Set is of size %d\n",x);
