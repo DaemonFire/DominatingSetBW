@@ -36,9 +36,10 @@ cutdata secondpreprocess (cutdata c, graph g);
 
 cutdata thirdpreprocess (cutdata c, graph g);
 
-int toplevelalgorithm (dectree t, graph g);
+pointset toplevelalgorithm (dectree t, graph g);
 
-cutdata *stepalgorithm (dectree tparticular, graph g);
+dectree stepalgorithm (dectree t, graph g);
 
+pointset computeDS (dectree t, int muchleft, int aleft, int acleft, int muchright, int bright, int bcright);
 
 #endif

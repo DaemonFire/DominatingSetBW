@@ -34,9 +34,13 @@ int main (int argc, char** argv){
 
 
 	storetree (*t, f, "0");*/
-	int x = toplevelalgorithm (*t, g);
+	pointset x = toplevelalgorithm (*t, g);
+	printf("Minimum Dominating Set is of size %d\n",x.size);
+	for (int i=0;i<x.size;i++){
+		printf("%d %d\n",g.pos[3*x.members[i]+1], g.pos[3*x.members[i]+2]);
+	}
+	printf("\n");
 
-	printf("Minimum Dominating Set is of size %d\n",x);
 	//generatePlotFile (*t, g);
 
 	return EXIT_SUCCESS;
