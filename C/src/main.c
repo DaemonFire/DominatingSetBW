@@ -15,7 +15,7 @@
 int main (int argc, char** argv){
 	if (argc!=2)
 		return EXIT_FAILURE;
-	graph g = loadgraph(argv[1], 180);
+	graph g = loadgraph(argv[1], 50);
 	pointset p;
 	p.size=g.size;
 	p.members=(int*)malloc(g.size*sizeof(int));
@@ -24,7 +24,12 @@ int main (int argc, char** argv){
 		p.members[i]=i;
 	}
 	//dectree t = loadtree("tiefighter.tree");
-	dectree *t = generateTree(p,g,0);
+	//dectree *t = generateTree(p,g,0);
+
+	
+
+	dectree *t=generateTreeBW (g);
+
 /*
 	FILE *f;
 	if ((f=fopen("arbre.tree","r"))==NULL) {
@@ -34,6 +39,8 @@ int main (int argc, char** argv){
 
 
 	storetree (*t, f, "0");*/
+
+	//printTree (*t);
 	pointset x = toplevelalgorithm (*t, g);
 	printf("Minimum Dominating Set is of size %d\n",x.size);
 	for (int i=0;i<x.size;i++){

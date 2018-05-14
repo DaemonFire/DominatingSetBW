@@ -83,6 +83,11 @@ typedef struct graph {
 	int size;
 } graph;
 
+typedef struct setwithinsets {
+	pointset *set;
+	int size;
+} setwithinsets;
+
 #endif
 
 

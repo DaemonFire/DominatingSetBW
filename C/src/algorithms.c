@@ -740,10 +740,10 @@ cutdata thirdpreprocess (cutdata c, graph g){
 			pointset n;
 			n.size=0;
 			n.members = (int*)malloc(c.nrepincomp*sizeof(pointset));
-			printf("rprime=");
+/*			printf("rprime=");
 			for (int k=0;k<rprime.size;k++)
 				printf("%d, ",rprime.members[k]);
-			printf("\n");
+			printf("\n");*/
 			for (int k=0;k<c.nrepincomp;k++){
 				int neighboor=0;
 				for (int l=0;l<rprime.size;l++){
@@ -758,10 +758,10 @@ cutdata thirdpreprocess (cutdata c, graph g){
 					n.members[n.size-1]=c.complementtc[k];
 				}
 			}
-			printf("n=");
+/*			printf("n=");
 			for (int k=0;k<n.size;k++)
 				printf("%d, ",n.members[k]);
-			printf("\n");
+			printf("\n");*/
 			for (int k=0; k<c.lnracard;k++){
 				if (c.lnra[k].size==n.size){
 					int common = 0;
@@ -773,10 +773,10 @@ cutdata thirdpreprocess (cutdata c, graph g){
 					}
 
 					if (common==n.size){
-				printf("repres=");
+/*				printf("repres=");
 				for (int l=0;l<c.lnra[k].size;l++)
 					printf("%d, ",c.lnra[k].members[l]);
-				printf("\n");
+				printf("\n");*/
 						c.m[j*c.nrep+i]=c.assoc[2*k];
 						break;
 					}
@@ -789,7 +789,7 @@ cutdata thirdpreprocess (cutdata c, graph g){
 			}
 		}
 	}
-printf("C.m=\n");
+/*printf("C.m=\n");
 						for (int x=0;x<c.lracard;x++){
 							for (int y=0;y<c.nrep;y++){
 								printf("{");
@@ -803,7 +803,7 @@ printf("C.m=\n");
 			printf("c.rep=");
 			for (int i=0;i<c.nrep;i++)
 				printf("%d, ",c.tc[i]);
-			printf("\n");
+			printf("\n");*/
 
 	c.mcomp=(pointset*)malloc(c.lracompcard*c.nrepincomp*sizeof(pointset));
 
@@ -1024,7 +1024,7 @@ pointset toplevelalgorithm (dectree t, graph g){
 			if (size==-1){
 				if ((c1.tab[i*c1.lracompcard+qindex]!=-1)&&(c2.tab[j*c2.lracompcard+pindex]!=-1)){
 					size = c1.tab[i*c1.lracompcard+qindex]+c2.tab[j*c2.lracompcard+pindex];
-						printf("c1. lra[i] = ");
+			/*			printf("c1. lra[i] = ");
 						for (int t=0; t<c1.lra[i].size; t++)
 							printf(" %d,",c1.lra[i].members[t]);
 						printf("\n");
@@ -1041,7 +1041,7 @@ pointset toplevelalgorithm (dectree t, graph g){
 							printf(" %d,",c2.lracomp[pindex].members[t]);
 						printf("\n");
 						printf("size=%d\n",size);
-						printf("is it a size? in C1 it's %d, in C2 it's %d and that makes %d\n\n", c1.tab[i*c1.lracompcard+qindex], c2.tab[j*c2.lracompcard+pindex], c1.tab[i*c1.lracompcard+qindex]+c2.tab[j*c2.lracompcard+pindex]);
+						printf("is it a size? in C1 it's %d, in C2 it's %d and that makes %d\n\n", c1.tab[i*c1.lracompcard+qindex], c2.tab[j*c2.lracompcard+pindex], c1.tab[i*c1.lracompcard+qindex]+c2.tab[j*c2.lracompcard+pindex]);*/
 						amax = i;
 						acmax = qindex;
 						bmax= j;
@@ -1054,7 +1054,7 @@ pointset toplevelalgorithm (dectree t, graph g){
 
 					if (size > c1.tab[i*c1.lracompcard+qindex]+c2.tab[j*c2.lracompcard+pindex]){
 						size = c1.tab[i*c1.lracompcard+qindex]+c2.tab[j*c2.lracompcard+pindex];
-						printf("c1. lra[i] = ");
+					/*	printf("c1. lra[i] = ");
 						for (int t=0; t<c1.lra[i].size; t++)
 							printf(" %d,",c1.lra[i].members[t]);
 						printf("\n");
@@ -1071,7 +1071,7 @@ pointset toplevelalgorithm (dectree t, graph g){
 							printf(" %d,",c2.lracomp[pindex].members[t]);
 						printf("\n");
 						printf("size=%d\n",size);
-						printf("is it a size? in C1 it's %d, in C2 it's %d and that makes %d\n\n", c1.tab[i*c1.lracompcard+qindex], c2.tab[j*c2.lracompcard+pindex], c1.tab[i*c1.lracompcard+qindex]+c2.tab[j*c2.lracompcard+pindex]);
+						printf("is it a size? in C1 it's %d, in C2 it's %d and that makes %d\n\n", c1.tab[i*c1.lracompcard+qindex], c2.tab[j*c2.lracompcard+pindex], c1.tab[i*c1.lracompcard+qindex]+c2.tab[j*c2.lracompcard+pindex]);*/
 						amax = i;
 						acmax = qindex;
 						bmax= j;
@@ -1110,6 +1110,10 @@ dectree stepalgorithm (dectree t, graph g){
 		cutdata c1 = cutThatTree (g, t, 0);
 
 		c1 = firstpreprocess (g,c1);
+	/*	printf("c1.rep:");
+		for (int i=0;i<c1.nrep;i++)
+			printf(" %d",c1.a[i]);
+		printf("\n");	*/		
 		c1 = secondpreprocess (c1, g);
 		c1 = thirdpreprocess (c1, g);
 
@@ -1824,7 +1828,7 @@ dectree stepalgorithm (dectree t, graph g){
 				c2.tab[3]=1;
 
 			}
-printf("C2.m=\n");
+/*		printf("C2.m=\n");
 						for (int x=0;x<c2.lracard;x++){
 							for (int y=0;y<c2.nrep;y++){
 								printf("{");
@@ -1888,7 +1892,7 @@ printf("C2.m=\n");
 					printf(" %d,", c2.tab[i*c2.lracompcard+j]);
 				}
 				printf("\n");
-			}
+			}*/
 
 			t.c1=c1;
 			t.c2=c2;
