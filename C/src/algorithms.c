@@ -12,8 +12,6 @@
 #define MAT(mat,x,y,n) (mat[x*n+y])
 
 
-// This function takes a graph, a decomposition tree and an int stating if we're to cut the left or right son of the tree t to create the
-// cut in the decomposition graph
 cutdata cutThatTree (graph g, dectree t, int choiceofson){
 	cutdata c;
 	c.na=0;
@@ -21,15 +19,14 @@ cutdata cutThatTree (graph g, dectree t, int choiceofson){
 	c.a=NULL;
 	c.acomp=NULL;
 
-	if (choiceofson==0){					// a choiceofson of 0 means that we're cutting the decomposition tree along the left exiting
-		c.na=getnumberofleaves (*(t.left));		// edge of the current node. So primary sub-graph is going to be the set of points
-		c.a=(int*)malloc(c.na*sizeof(int));		// represented by leaves of the left son node
+	if (choiceofson==0){
+		c.na=getnumberofleaves (*(t.left));
+		c.a=(int*)malloc(c.na*sizeof(int));
 		getallleaves(*(t.left), c.a);
-
 	}
-	
+
 	else {
-		c.na=getnumberofleaves (*(t.right));	// a choice of son 1 means that we're cutting the tree along the right exiting edge
+		c.na=getnumberofleaves (*(t.right));
 		c.a=(int*)malloc(c.na*sizeof(int));
 		getallleaves (*(t.right),c.a);
 	}
@@ -41,10 +38,10 @@ cutdata cutThatTree (graph g, dectree t, int choiceofson){
 	int i=0;
 	int j=0;
 	int k=0;
-	for (i=0;i<g.size;i++){					// all other points will be in the complementary, the second sub-graph. That's why we		
-		int ina=0;							// iterate on graph's size, to get all points of the graph and not just points that
-		for (j=0;j<c.na;j++){				// are contained in sons of the current node
-			if (c.a[j]==i){						
+	for (i=0;i<g.size;i++){
+		int ina=0;
+		for (j=0;j<c.na;j++){
+			if (c.a[j]==i){
 				ina=1;
 				break;
 			}
@@ -60,36 +57,23 @@ cutdata cutThatTree (graph g, dectree t, int choiceofson){
 	c.matrixrevisited = (int*)malloc(c.na*c.nacomp*sizeof(int));
 
 
-
-	// Now that we have determined the vertices we're interested in, we compute the adjacency matrix reduced to those vertices
 	for (int i=0;i<c.na;i++){
-		for (int j=0;j<c.nacomp;j++){
-
+		for (int j=0;j<c.nacomp;j++)
 			c.matrixrevisited[i*c.nacomp+j]=g.matrix[c.a[i]*g.size+c.acomp[j]];
-
-		}
-
 	}
 	return c;
 }
 
 
-/*
-This first pre-process takes a graph and a cut of the decomposition tree as input and computes its equivalency 
-classes, the output being the lists of representants of the equivalency classes of both primary and secondary sub-graphs, their numbers
-and two lists which associate each point of a subgraph to the representant of its equivalency class 
-*/
 cutdata firstpreprocess(graph g,  cutdata c){
 
-	int *twinsleft = (int*)malloc(2*c.na*c.na*sizeof(int));		// we have at most na squared twin pairs, in the case of a complete graph
+	int *twinsleft = (int*)malloc(2*c.na*c.na*sizeof(int));
 	int *twinsright = (int*)malloc(2*c.nacomp*c.nacomp*sizeof(int));
 
-	matchTwins(c ,twinsleft,twinsright);						// we compute the list of twins in each sub-graph. This will be a 
-																// sequency with each eventh vertice being twin of the following oddth
-																// vertice, relative to the induced partition of the graph
+	matchTwins(c ,twinsleft,twinsright);
 
-	c.pointtorep=(int*)malloc(2*c.na*sizeof(int));				// we're going to associate the representant of the equivalency class
-	c.pointtorepincomp=(int*)malloc(2*c.nacomp*sizeof(int));	// to each vertice of each subgraph
+	c.pointtorep=(int*)malloc(2*c.na*sizeof(int));
+	c.pointtorepincomp=(int*)malloc(2*c.nacomp*sizeof(int));
 	
 	for (int i=0; i<2*c.na;i++){
 		c.pointtorep[i]=-1;
@@ -104,28 +88,23 @@ cutdata firstpreprocess(graph g,  cutdata c){
 
 		for (int j=0;j<c.na*c.na;j++){
 			int a = twinsleft[j*2];
-			int b = twinsleft[j*2+1];							// for each vertice in primary sub-graph A, we try to find every
-																// occurence of it in the twins matrix
-			if (a==i){											// in the twins matrix, vertices are designed by indexes in the sub-graph
-				if (c.a[b]>c.pointtorep[i*2+1]){				// once we find an occurence of the vertice, we check if the vertice to
-					c.pointtorep[i*2+1]=c.a[b];					// which he is a twin has an index (in the whole graph) greater than
-				}												// the one registered in the current pointerToRep matrix, in which case
-			}													// we save this one instead
+			int b = twinsleft[j*2+1];
+
+			if (a==i){
+				if (c.a[b]>c.pointtorep[i*2+1])
+					c.pointtorep[i*2+1]=c.a[b];
+			}
 			if (b==i){
-				if (c.a[a]>c.pointtorep[i*2+1]){
+				if (c.a[a]>c.pointtorep[i*2+1])
 					c.pointtorep[i*2+1]=c.a[a];
-				}
 			}
 		}
 
-		// at the end of those loops, the pointerToRep matrix associates each vertex to the representant of his equivalency class
-		// which is his twin of greatest index possible
-		if (c.pointtorep[i*2+1]<c.a[i]){
-			c.pointtorep[i*2+1]=c.a[i];								// but we've not treated the case of the vertex itself, which could	
-		}															// be the one with the greatest index of its equivalency class
-	}																// if that's the case, this vertex becomes its own representant
+		if (c.pointtorep[i*2+1]<c.a[i])
+			c.pointtorep[i*2+1]=c.a[i];
+	}
 
-	// we do the exact same thing for the complementary of A, the secondary sub-graph
+
 	for (int i=0;i<c.nacomp;i++){
 		c.pointtorepincomp[i*2]=c.acomp[i];
 		for (int j=0;j<c.nacomp*c.nacomp;j++){
@@ -133,23 +112,19 @@ cutdata firstpreprocess(graph g,  cutdata c){
 			int b = twinsright[j*2+1];
 		
 			if (a==i){
-				if (c.acomp[b]>c.pointtorepincomp[i*2+1]){
+				if (c.acomp[b]>c.pointtorepincomp[i*2+1])
 					c.pointtorepincomp[i*2+1]=c.acomp[b];
-				}
 			}
 			if (b==i){
-				if (c.acomp[a]>c.pointtorepincomp[i*2+1]){
+				if (c.acomp[a]>c.pointtorepincomp[i*2+1])
 					c.pointtorepincomp[i*2+1]=c.acomp[a];
-				}
 			}
 		}
 
-		if (c.pointtorepincomp[i*2+1]<c.acomp[i]){
+		if (c.pointtorepincomp[i*2+1]<c.acomp[i])
 			c.pointtorepincomp[i*2+1]=c.acomp[i];
-		}
 	}
 
-	// now that we have computed equivalency class and associated each verted to the representant of its class, we list those representants
 	c.tc=(int*)malloc(c.na*sizeof(int));
 	for (int i=0;i<c.na;i++)
 		c.tc[i]=-1;
@@ -159,22 +134,21 @@ cutdata firstpreprocess(graph g,  cutdata c){
 		int here=0;
 		for (int j=0;j<c.na;j++){
 			if (c.pointtorep[2*i+1]==c.tc[j]){
-				here=1;									// for each representant in the pointerToRep matrix, we check if it has already
-				break;									// been registered in the list of representants. If it has, no need to register
+				here=1;
+				break;
 			}
 		}
-		if (here==0){									// if it has not, we register it and increments our cursor
+		if (here==0){
 			c.tc[cursor]=c.pointtorep[2*i+1];			
 			cursor++;
 		}
 	}
 
-	c.nrep=cursor;										// this cursor has counted all representatives and we store that
+	c.nrep=cursor;
 
 	for (int i=0;i<c.nacomp;i++)
 		c.complementtc[i]=-1;
 
-	// we do the same for secondary sub-graph
 	cursor=0;
 	for (int i=0;i<c.nacomp;i++){
 		int here=0;
@@ -196,8 +170,6 @@ cutdata firstpreprocess(graph g,  cutdata c){
 }
 
 
-
-// This if the function of wonders! It computes twins in each subgraph by checking if their induced vectors in the adjacency matrix match
 int matchTwins (cutdata c, int* twinsleft, int* twinsright){
 	int i,j,k;
 	int cursor=0;
@@ -210,19 +182,18 @@ int matchTwins (cutdata c, int* twinsleft, int* twinsright){
 		twinsright[i]=-1;
 
 	for (i=0;i<c.na;i++){
-		for (j=i+1;j<c.na;j++){					// we take each pair of vertices of one subgraph	
+		for (j=i+1;j<c.na;j++){
 			int tw=1;	
 
-			for (k=0;k<c.nacomp;k++){			// and we check coordinates by coordinates that they have the same induced vector
+			for (k=0;k<c.nacomp;k++){
 				if(c.matrixrevisited[i*c.nacomp+k]!=c.matrixrevisited[j*c.nacomp+k]){
-				
-					tw=0;						// upon finding a coordinate that doesn't match, we flag this pair as non-twins
+					tw=0;
 					break;
 				}
 			}	
 			
-			if (tw==1){							// if no conflit has been detected, the pair is a twins pair and we write it down in the
-				twinsleft[cursor]=i;			// twin matrix
+			if (tw==1){
+				twinsleft[cursor]=i;
 				cursor++;
 				twinsleft[cursor]=j;
 				cursor++;
@@ -233,15 +204,12 @@ int matchTwins (cutdata c, int* twinsleft, int* twinsright){
 
 	cursor = 0;
 
-	// we do the same on secondary sub-graph
 	for (i=0;i<c.nacomp;i++){
 		for (j=i+1;j<c.nacomp;j++){	
 			int tw=1;	
 
 			for (k=0;k<c.na;k++){
-			
 				if(c.matrixrevisited[k*c.nacomp+i]!=c.matrixrevisited[k*c.nacomp+j]){
-				
 					tw=0;
 					break;
 				}
@@ -253,7 +221,6 @@ int matchTwins (cutdata c, int* twinsleft, int* twinsright){
 				twinsright[cursor]=j;
 				cursor++;
 			}
-			
 		} 		
 	}
 
@@ -440,11 +407,6 @@ int findTwins(int n,int* mat,int* twins){
 }
 
 
-
-/* 
-This is the second pre-processing function. We give it a cutdata on which the first preprocess has been carried on and it uses informations on representants to compute the list of representant sets, their respectives neighboorhoods and associations
-between those two sets of data, to be stored in the cutdata, for both subgraphs of the cut
-*/
 cutdata secondpreprocess (cutdata c, graph g){
 
 	c.lra=(pointset*)malloc(4*c.nrep*c.nrep*c.nrep*c.nrep*sizeof(pointset));	//TODO: Find more accurate measures of memory needed for 
@@ -463,10 +425,10 @@ cutdata secondpreprocess (cutdata c, graph g){
 	c.lra[0]=s;
 	c.lnra[0]=s;
 	c.assoc[0]=s;
-	c.assoc[1]=s;										// we initialize those sets with the empty set, which is neighbor of the empty
-														// set
-	while (sizeoflast!=0){								// we initialize lastLevel as a set containing only an empty set of points
-		for (int i=0; i<sizeoflast;i++){				// and we loop until lastLevel is an empty set itself
+	c.assoc[1]=s;
+
+	while (sizeoflast!=0){
+		for (int i=0; i<sizeoflast;i++){
 			pointset r;
 			r.size = lastLevel[i].size;
 
@@ -474,8 +436,8 @@ cutdata secondpreprocess (cutdata c, graph g){
 				r.members=(int*)malloc((r.size)*sizeof(int));
 
 			for (int j=0; j< r.size;j++)
-				r.members[j]=lastLevel[i].members[j];						// for each set of points in lastLevel
-			for (int j=0; j<c.nrep; j++){				// we try adding each representants of equivalency classes of primary subgraph	
+				r.members[j]=lastLevel[i].members[j];
+			for (int j=0; j<c.nrep; j++){
 				pointset rprime;
 
 
@@ -488,40 +450,29 @@ cutdata secondpreprocess (cutdata c, graph g){
 					rprime.size++;
 
 					rprime.members[k]=r.members[k];
-					if (rprime.members[k]==c.tc[j])
+					if (rprime.members[k]==c.tc[j]){
 						alreadyin = 1;
+						break;
+					}
 				}
 
-				if (alreadyin==0) {						// if the vertex was already in the pointset, we have nothing to add, so we pass
-					rprime.size++;						// on to the next representant. Else, we add it to the pointset and compute the
-														// neighboorhood of this new set of points
-
-
+				if (alreadyin==0) {
+					rprime.size++;
 					rprime.members[rprime.size-1]=c.tc[j];		
 					pointset n;
 					n.members=(int*)malloc(c.nrepincomp*sizeof(int));								
 					n.size=0;
 					
-					for (int l=0; l<c.nrepincomp; l++){	// for each point of this new set we get neighboorhoods
+					for (int l=0; l<c.nrepincomp; l++){
 						for (int k=0;k<rprime.size;k++){
-
-
-
 							if(g.matrix[rprime.members[k]*g.size + c.complementtc[l]]==1){
-															// for each representant of equivalence classes in the secondary subgraph, we
-															// check if they are neighboors of the point computed
-
 									n.size++;
-
 									n.members[n.size-1]=c.complementtc[l];
 									break;
-								
 							}
 						}
 					}
 
-
-					// we then check if this neighboorhood is already in lnra
 					int alreadyin = 0;
 					
 					if (n.size==0)
@@ -530,7 +481,7 @@ cutdata secondpreprocess (cutdata c, graph g){
 						int common = 0;
 						if (c.lnra[k].size==n.size){
 							for (int l = 0; l<n.size; l++){
-								for (int m =0; m<c.lnra[k].size;m++){		// we count the number of vertices of n in each set of lnra
+								for (int m =0; m<c.lnra[k].size;m++){
 									if (c.lnra[k].members[m]==n.members[l]){		
 										common++;
 										break;
@@ -538,51 +489,33 @@ cutdata secondpreprocess (cutdata c, graph g){
 								}
 							}
 
-							if (common == n.size){						// if this number is equal to the size of n, n is already in lnra
+							if (common == n.size){
 								alreadyin = 1;
 								break;
 							}
 						}
 					}
 
-					if (alreadyin == 0) {							// if n isn't in lnra, we going to add it and the rprime associated
-
-				
+					if (alreadyin == 0) {				
 						c.lracard++;
 						c.lra[c.lracard-1]=rprime;
-
 						sizeofnext++;
-
-						nextLevel[sizeofnext-1]=rprime;
-
-
-				
+						nextLevel[sizeofnext-1]=rprime;				
 						c.lnracard++;
-
 						c.lnra[c.lnracard-1]=n;
-
-
 						c.assoc[c.lracard*2-2]=rprime;
 						c.assoc[c.lracard*2-1]=n;
-
 					}
-					
-
 				}
-
-
-			}
-			
+			}			
 		}
-		lastLevel=nextLevel;										// we loop back until no representating set and no neighboorhoods 
-		nextLevel=NULL;												// are interesting enough to be added
+		lastLevel=nextLevel;
+		nextLevel=NULL;
 		nextLevel=(pointset*)malloc(c.nrep*c.nrep*c.nrep*c.nrep*sizeof(pointset));
 		sizeoflast=sizeofnext;
-
 		sizeofnext=0;
 	}
 
-	// we do the same for the second subgraph
 	c.lracomp=(pointset*)malloc(c.nrep*c.nrep*c.nrep*c.nrep*sizeof(pointset));
 	c.lnracomp=(pointset*)malloc(c.nrep*c.nrep*c.nrep*c.nrep*sizeof(pointset));
 	c.lracompcard=1;
@@ -596,7 +529,6 @@ cutdata secondpreprocess (cutdata c, graph g){
 	sizeoflast=1;
 	sizeofnext=0;
 	c.assoccomp=(pointset*)malloc(2*c.nrep*c.nrep*c.nrepincomp*c.nrepincomp*sizeof(pointset));
-
 	c.lracomp[0]=s;
 	c.lnracomp[0]=s;
 	c.assoccomp[0]=s;
@@ -616,12 +548,10 @@ cutdata secondpreprocess (cutdata c, graph g){
 				pointset rprime;
 				rprime.size=0;
 				int alreadyin = 0;
-
 				rprime.members=(int*)malloc((r.size+1)*sizeof(int));
 
 				for (int k=0;k<r.size;k++){
 					rprime.size++;
-
 					rprime.members[k]=r.members[k];
 					if (rprime.members[k]==c.complementtc[j])
 						alreadyin = 1;
@@ -629,7 +559,6 @@ cutdata secondpreprocess (cutdata c, graph g){
 
 				if (alreadyin==0) {							
 					rprime.size++;							
-
 					rprime.members[rprime.size-1]=c.complementtc[j];		
 					pointset n;
 					n.members=(int*)malloc(c.nrep*sizeof(int));								
@@ -637,17 +566,11 @@ cutdata secondpreprocess (cutdata c, graph g){
 					for (int l=0; l<c.nrep; l++){	
 						for (int k=0;k<rprime.size;k++){
 
-
 							if(g.matrix[rprime.members[k]+g.size*c.tc[l]]==1){
-													
-
 								int alreadyin=0;			
 								for (int m=0; m<n.size;m++){
-
-									if (n.members[m]==c.tc[l]){
+									if (n.members[m]==c.tc[l])
 										alreadyin=1;
-									}
-
 								}
 								if (alreadyin==0){			
 									n.size++;
@@ -681,8 +604,7 @@ cutdata secondpreprocess (cutdata c, graph g){
 						}
 					}
 				
-					if (alreadyin == 0) {								
-					
+					if (alreadyin == 0) {
 						c.lracompcard++;
 						c.lracomp[c.lracompcard-1]=rprime;
 						sizeofnext++;
@@ -691,21 +613,14 @@ cutdata secondpreprocess (cutdata c, graph g){
 						c.lnracomp[c.lnracompcard-1]=n;
 						c.assoccomp[c.lracompcard*2-2]=rprime;
 						c.assoccomp[c.lracompcard*2-1]=n;
-
 					}
-					
-
 				}
-
-
-			}
-			
+			}			
 		}
 		lastLevel=nextLevel;											
 		nextLevel=NULL;			
 		nextLevel=(pointset*)malloc(c.nrep*c.nrep*c.nrep*c.nrep*sizeof(pointset));
 		sizeoflast=sizeofnext;
-
 		sizeofnext=0;
 	}
 
@@ -721,7 +636,6 @@ cutdata thirdpreprocess (cutdata c, graph g){
 		int v = c.tc[i];
 		for (int j=0;j<c.lracard;j++){
 			pointset r = c.lra[j];
-
 			pointset rprime;
 			rprime.size=r.size;
 			rprime.members=(int*)malloc((r.size+1)*sizeof(int));
@@ -740,10 +654,7 @@ cutdata thirdpreprocess (cutdata c, graph g){
 			pointset n;
 			n.size=0;
 			n.members = (int*)malloc(c.nrepincomp*sizeof(pointset));
-/*			printf("rprime=");
-			for (int k=0;k<rprime.size;k++)
-				printf("%d, ",rprime.members[k]);
-			printf("\n");*/
+
 			for (int k=0;k<c.nrepincomp;k++){
 				int neighboor=0;
 				for (int l=0;l<rprime.size;l++){
@@ -758,10 +669,7 @@ cutdata thirdpreprocess (cutdata c, graph g){
 					n.members[n.size-1]=c.complementtc[k];
 				}
 			}
-/*			printf("n=");
-			for (int k=0;k<n.size;k++)
-				printf("%d, ",n.members[k]);
-			printf("\n");*/
+
 			for (int k=0; k<c.lnracard;k++){
 				if (c.lnra[k].size==n.size){
 					int common = 0;
@@ -773,10 +681,6 @@ cutdata thirdpreprocess (cutdata c, graph g){
 					}
 
 					if (common==n.size){
-/*				printf("repres=");
-				for (int l=0;l<c.lnra[k].size;l++)
-					printf("%d, ",c.lnra[k].members[l]);
-				printf("\n");*/
 						c.m[j*c.nrep+i]=c.assoc[2*k];
 						break;
 					}
@@ -789,21 +693,6 @@ cutdata thirdpreprocess (cutdata c, graph g){
 			}
 		}
 	}
-/*printf("C.m=\n");
-						for (int x=0;x<c.lracard;x++){
-							for (int y=0;y<c.nrep;y++){
-								printf("{");
-								for (int z=0;z<c.m[x*c.nrep+y].size;z++){
-									printf("%d,",c.m[x*c.nrep+y].members[z]);
-								}
-								printf("},");
-							}
-							printf("\n");
-						}
-			printf("c.rep=");
-			for (int i=0;i<c.nrep;i++)
-				printf("%d, ",c.tc[i]);
-			printf("\n");*/
 
 	c.mcomp=(pointset*)malloc(c.lracompcard*c.nrepincomp*sizeof(pointset));
 
@@ -811,7 +700,6 @@ cutdata thirdpreprocess (cutdata c, graph g){
 		int v = c.complementtc[i];
 		for (int j=0;j<c.lracompcard;j++){
 			pointset r = c.lracomp[j];
-
 			pointset rprime;
 			rprime.size=r.size;
 			rprime.members=(int*)malloc((r.size+1)*sizeof(int));
@@ -857,7 +745,6 @@ cutdata thirdpreprocess (cutdata c, graph g){
 					}
 
 					if (common==n.size){
-
 						c.mcomp[j*c.nrepincomp+i]=c.assoccomp[2*k];
 						break;
 					}
@@ -870,7 +757,6 @@ cutdata thirdpreprocess (cutdata c, graph g){
 			}
 		}
 	}
-
 
 	return c;
 }
@@ -886,9 +772,7 @@ pointset toplevelalgorithm (dectree t, graph g){
 	t=stepalgorithm(t,g);
 	cutdata c1 = t.c1;
 	cutdata c2= t.c2;
-
-	int size=-1;
-	
+	int size=-1;	
 	int amax;
 	int acmax;
 	int bmax;
@@ -898,7 +782,6 @@ pointset toplevelalgorithm (dectree t, graph g){
 		for (int j=0;j<c2.lracard;j++){
 			pointset p = c1.lra[i];
 			pointset q = c2.lra[j];
-
 			pointset po;
 			po.size=0;
 			po.members= (int*)malloc(c2.lracompcard*sizeof(int));
@@ -1024,24 +907,6 @@ pointset toplevelalgorithm (dectree t, graph g){
 			if (size==-1){
 				if ((c1.tab[i*c1.lracompcard+qindex]!=-1)&&(c2.tab[j*c2.lracompcard+pindex]!=-1)){
 					size = c1.tab[i*c1.lracompcard+qindex]+c2.tab[j*c2.lracompcard+pindex];
-			/*			printf("c1. lra[i] = ");
-						for (int t=0; t<c1.lra[i].size; t++)
-							printf(" %d,",c1.lra[i].members[t]);
-						printf("\n");
-						printf("c1. lracomp[qindex] = ");
-						for (int t=0; t<c1.lracomp[qindex].size; t++)
-							printf(" %d,",c1.lracomp[qindex].members[t]);
-						printf("\n");
-						printf("c2. lra[j] = ");
-						for (int t=0; t<c2.lra[j].size; t++)
-							printf(" %d,",c2.lra[j].members[t]);
-						printf("\n");
-						printf("c2. lracomp[pindex] = ");
-						for (int t=0; t<c2.lracomp[pindex].size; t++)
-							printf(" %d,",c2.lracomp[pindex].members[t]);
-						printf("\n");
-						printf("size=%d\n",size);
-						printf("is it a size? in C1 it's %d, in C2 it's %d and that makes %d\n\n", c1.tab[i*c1.lracompcard+qindex], c2.tab[j*c2.lracompcard+pindex], c1.tab[i*c1.lracompcard+qindex]+c2.tab[j*c2.lracompcard+pindex]);*/
 						amax = i;
 						acmax = qindex;
 						bmax= j;
@@ -1049,50 +914,27 @@ pointset toplevelalgorithm (dectree t, graph g){
 					}
 			}
 			else {
-
 				if ((c1.tab[i*c1.lracompcard+qindex]!=-1)&&(c2.tab[j*c2.lracompcard+pindex]!=-1)){
-
 					if (size > c1.tab[i*c1.lracompcard+qindex]+c2.tab[j*c2.lracompcard+pindex]){
 						size = c1.tab[i*c1.lracompcard+qindex]+c2.tab[j*c2.lracompcard+pindex];
-					/*	printf("c1. lra[i] = ");
-						for (int t=0; t<c1.lra[i].size; t++)
-							printf(" %d,",c1.lra[i].members[t]);
-						printf("\n");
-						printf("c1. lracomp[qindex] = ");
-						for (int t=0; t<c1.lracomp[qindex].size; t++)
-							printf(" %d,",c1.lracomp[qindex].members[t]);
-						printf("\n");
-						printf("c2. lra[j] = ");
-						for (int t=0; t<c2.lra[j].size; t++)
-							printf(" %d,",c2.lra[j].members[t]);
-						printf("\n");
-						printf("c2. lracomp[pindex] = ");
-						for (int t=0; t<c2.lracomp[pindex].size; t++)
-							printf(" %d,",c2.lracomp[pindex].members[t]);
-						printf("\n");
-						printf("size=%d\n",size);
-						printf("is it a size? in C1 it's %d, in C2 it's %d and that makes %d\n\n", c1.tab[i*c1.lracompcard+qindex], c2.tab[j*c2.lracompcard+pindex], c1.tab[i*c1.lracompcard+qindex]+c2.tab[j*c2.lracompcard+pindex]);*/
 						amax = i;
 						acmax = qindex;
 						bmax= j;
 						bcmax = pindex;
 					}
 				}
-			}
-			
+			}			
 		}
 	}
 	pointset sol;
 	sol.size=0;
 	sol.members= (int*)malloc(size*sizeof(int));
-
 	sol = computeDS (t, c1.tab[amax*c1.lracompcard+acmax], amax, acmax, c2.tab[bmax*c2.lracompcard+bcmax], bmax, bcmax);
 	return sol;
 }
 
+
 dectree stepalgorithm (dectree t, graph g){
-
-
 
 	if ((t.right==NULL)||(t.left==NULL))
 		t.live=0;
@@ -1110,10 +952,6 @@ dectree stepalgorithm (dectree t, graph g){
 		cutdata c1 = cutThatTree (g, t, 0);
 
 		c1 = firstpreprocess (g,c1);
-	/*	printf("c1.rep:");
-		for (int i=0;i<c1.nrep;i++)
-			printf(" %d",c1.a[i]);
-		printf("\n");	*/		
 		c1 = secondpreprocess (c1, g);
 		c1 = thirdpreprocess (c1, g);
 
@@ -1151,7 +989,6 @@ dectree stepalgorithm (dectree t, graph g){
 						pointset ra = c11.lra[i];
 						pointset rb = c12.lra[j];
 						pointset rwc = c1.lracomp[k];
-
 						pointset ua;
 						ua.size = rb.size;
 						ua.members = (int*) malloc ((rb.size+rwc.size)*sizeof(int));
@@ -1828,77 +1665,10 @@ dectree stepalgorithm (dectree t, graph g){
 				c2.tab[3]=1;
 
 			}
-/*		printf("C2.m=\n");
-						for (int x=0;x<c2.lracard;x++){
-							for (int y=0;y<c2.nrep;y++){
-								printf("{");
-								for (int z=0;z<c2.m[x*c2.nrep+y].size;z++){
-									printf("%d,",c2.m[x*c2.nrep+y].members[z]);
-								}
-								printf("},");
-							}
-							printf("\n");
-						}
-			printf("c2.rep=");
-			for (int i=0;i<c2.nrep;i++)
-				printf("%d, ",c2.tc[i]);
-			printf("\n");
-			printf("C1.lra = ");
-			for (int i=0; i<c1.lracard; i++){
-				printf("[");
-				for (int j=0; j<c1.lra[i].size; j++){
-					printf("%d, ", c1.lra[i].members[j]);
-				}
-				printf("], ");
-			}
-			printf("\n");
-			printf("C1.lracomp = ");
-			for (int i=0; i<c1.lracompcard; i++){
-				printf("[");
-				for (int j=0; j<c1.lracomp[i].size; j++){
-					printf("%d, ", c1.lracomp[i].members[j]);
-				}
-				printf("], ");
-			}
-			printf("\n");
-			printf("C2.lra = ");
-			for (int i=0; i<c2.lracard; i++){
-				printf("[");
-				for (int j=0; j<c2.lra[i].size; j++){
-					printf("%d, ", c2.lra[i].members[j]);
-				}
-				printf("], ");
-			}
-			printf("\n");
-			printf("C2.lracomp = ");
-			for (int i=0; i<c2.lracompcard; i++){
-				printf("[");
-				for (int j=0; j<c2.lracomp[i].size; j++){
-					printf("%d, ", c2.lracomp[i].members[j]);
-				}
-				printf("], ");
-			}
-			printf("\n");
-			printf("C1.tab=\n");
-			for (int i=0; i<c1.lracard; i++){
-				for (int j=0; j<c1.lracompcard;j++){
-					printf(" %d,", c1.tab[i*c1.lracompcard+j]);
-				}
-				printf("\n");
-			}
-			printf("C2.tab=\n");
-			for (int i=0; i<c2.lracard; i++){
-				for (int j=0; j<c2.lracompcard;j++){
-					printf(" %d,", c2.tab[i*c2.lracompcard+j]);
-				}
-				printf("\n");
-			}*/
 
 			t.c1=c1;
 			t.c2=c2;
-
 		}
-
 
 	return t;
 }
@@ -1916,10 +1686,8 @@ pointset computeDS (dectree t, int muchleft, int aleft, int acleft, int muchrigh
 	else if (muchleft!=0){
 
 		pastabox pbleft = t.c1.box[aleft*t.c1.lracompcard+acleft];
-
 		pasta p1 = pbleft.inleft;
 		pasta p2 = pbleft.inright;
-
 		pointset pointleft = p1.where;
 		pointset pointright = p2.where;
 		pointset complem = t.c1.lracomp[acleft];
@@ -2040,7 +1808,6 @@ pointset computeDS (dectree t, int muchleft, int aleft, int acleft, int muchrigh
 				}
 			}
 		}
-
 		
 		pointset ub;
 		ub.size = pointleft.size;
@@ -2125,10 +1892,7 @@ pointset computeDS (dectree t, int muchleft, int aleft, int acleft, int muchrigh
 			p.size++;
 			p.members[p.size-1]=pleft.members[i];
 		}
-		
-		
 	}
-
 
 	if ((t.right->left==NULL)&&(t.right->right==NULL)&&(muchright==1)){
 		p.size++;
@@ -2136,7 +1900,6 @@ pointset computeDS (dectree t, int muchleft, int aleft, int acleft, int muchrigh
 	}
 	else if (muchright!=0){
 		pastabox pbright = t.c2.box[bright*t.c2.lracompcard+bcright];
-
 		pasta p1 = pbright.inleft;
 		pasta p2 = pbright.inright;
 		pointset pointleft = p1.where;
@@ -2161,8 +1924,6 @@ pointset computeDS (dectree t, int muchleft, int aleft, int acleft, int muchrigh
 				}
 			}
 		}
-
-		
 		pointset ua;
 		ua.size = pointright.size;
 		ua.members = (int*) malloc ((pointright.size+complem.size)*sizeof(int));
@@ -2219,11 +1980,8 @@ pointset computeDS (dectree t, int muchleft, int aleft, int acleft, int muchrigh
 					}
 				}
 			}
-
 			rac = t.right->c1.mcomp[y*t.right->c1.nrepincomp+x];
-
 		}
-
 		for (int i=0;i<t.right->c1.lracompcard;i++){
 			if (t.right->c1.lracomp[i].size==rac.size){
 				int common = 0;
@@ -2262,7 +2020,6 @@ pointset computeDS (dectree t, int muchleft, int aleft, int acleft, int muchrigh
 			}
 		}
 
-		
 		pointset ub;
 		ub.size = pointleft.size;
 		ub.members = (int*) malloc ((pointleft.size+complem.size)*sizeof(int));
@@ -2340,16 +2097,13 @@ pointset computeDS (dectree t, int muchleft, int aleft, int acleft, int muchrigh
 		}
 		pointset pright;
 		pright.size=0;
-
 		pright.members= (int*)malloc((p1.howmany+p2.howmany)*sizeof(int));
 		pright = computeDS (*(t.right), p1.howmany, anextleft, acnextleft, p2.howmany, bnextleft, bcnextleft);
 
 		for (int i=0; i<pright.size; i++){
 			p.size++;
 			p.members[p.size-1]=pright.members[i];
-		}
-		
-		
+		}		
 	}
 
 	return p;
