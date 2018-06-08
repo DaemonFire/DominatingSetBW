@@ -31,7 +31,12 @@ graph generategraph (int nbpoint, int xrange, int yrange, int threshold){
 }
 
 int storegraph (graph g, char* name){
-	int fd = open (name, O_CREAT|O_TRUNC|O_RDWR);						// TODO : add a control structure to prevent crashes due to file access error
+	int fd;
+	if(fd = open (name, O_CREAT|O_TRUNC|O_RDWR)==-1){
+		fprintf(stderr,"could not open the file\n");
+		return EXIT_FAILURE;
+	}
+
 	chmod (name, 777);
 	char* str = (char*) malloc (100);
 
@@ -80,7 +85,7 @@ void generateEdges (graph g, int threshold){
 			}
 			else {
 				g.matrix[g.size*i+j]=0;
-				g.matrix[g.size*i+j]=0;
+				g.matrix[g.size*j+i]=0;
 			}
 		}
 		g.matrix[g.size*i+i]=0;

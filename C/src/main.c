@@ -11,6 +11,8 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <fcntl.h>
+#include <sys/time.h>
+#include <time.h>
 
 int main (int argc, char** argv){
 	if (argc!=2)
@@ -22,6 +24,10 @@ int main (int argc, char** argv){
 	printf("g.size=%d\n", g.size);
 	//dectree t = loadtree("tiefighter.tree");
 	//dectree *t = generateTree(p,g,0);
+
+	struct timeval stop, start;
+	gettimeofday(&start, NULL);
+
 	dectree *t=generateTreeBW (g);
 
 /*
@@ -34,16 +40,25 @@ int main (int argc, char** argv){
 
 	storetree (*t, f, "0");*/
 
-	printTree (*t);
+	gettimeofday(&stop, NULL);
+	int timeToTree=stop.tv_usec - start.tv_usec;
+	printf("Time elapsed for tree=%d\n",timeToTree);
+//	printTree (*t);
 
 	pointset x = toplevelalgorithm (*t, g);
 	printf("Minimum Dominating Set is of size %d\n",x.size);
 	for (int i=0;i<x.size;i++){
 		printf("%d %d\n",g.pos[3*x.members[i]+1], g.pos[3*x.members[i]+2]);
 	}
-	printf("\n");
+	//printf("\n");
 
 	//generatePlotFile (*t, g);
+
+	gettimeofday(&stop, NULL);
+	int timeToSet=stop.tv_usec - start.tv_usec;
+
+	printf("Time elapsed for set=%d\n",timeToSet);
+
 
 	return EXIT_SUCCESS;
 }
