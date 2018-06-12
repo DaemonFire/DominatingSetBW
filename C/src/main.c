@@ -22,6 +22,7 @@ int main (int argc, char** argv){
 	//graph g = loadgraphformat2(argv[1]);
 
 	printf("g.size=%d\n", g.size);
+	printf("number of edges=%d\n", getEdgeNumber(g));
 	//dectree t = loadtree("tiefighter.tree");
 	//dectree *t = generateTree(p,g,0);
 

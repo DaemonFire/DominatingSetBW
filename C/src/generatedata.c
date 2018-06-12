@@ -30,6 +30,16 @@ graph generategraph (int nbpoint, int xrange, int yrange, int threshold){
 	return g;
 }
 
+int getEdgeNumber(graph g){
+	int n=0;
+	for (int i=0;i<g.size;i++){
+		for (int j=i+1;j<g.size;j++){
+			if (g.matrix[i*g.size+j]==1)
+			n++;
+		}
+	}
+	return n;
+}
 int storegraph (graph g, char* name){
 	int fd;
 	if(fd = open (name, O_CREAT|O_TRUNC|O_RDWR)==-1){

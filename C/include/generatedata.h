@@ -6,6 +6,8 @@
 
 graph generategraph (int nbpoint, int xrange, int yrange, int threshold);
 
+int getEdgeNumber(graph g);
+
 int storegraph (graph g, char* name);
 
 graph loadgraph (char* path, int threshold);
