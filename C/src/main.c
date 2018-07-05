@@ -30,7 +30,9 @@ int main (int argc, char** argv){
 	gettimeofday(&start, NULL);
 
 	dectree *t=generateTreeBW (g);
-
+	gettimeofday(&stop, NULL);
+	int timeToTree=stop.tv_usec - start.tv_usec;
+	printf("Time elapsed for tree=%d\n",timeToTree);
 /*
 	FILE *f;
 	if ((f=fopen("arbre.tree","r"))==NULL) {
@@ -40,22 +42,26 @@ int main (int argc, char** argv){
 
 
 	storetree (*t, f, "0");*/
+/*	int bwmax = getBW(*t,g);
+	printf("Boolean-Width=%d\n",bwmax);*/
 
-	gettimeofday(&stop, NULL);
-	int timeToTree=stop.tv_usec - start.tv_usec;
-	printf("Time elapsed for tree=%d\n",timeToTree);
 //	printTree (*t);
+	graph* l;
+	l=(graph*)malloc(sizeof(graph));
+	*l=g;
+	pointset x = toplevelalgorithm (t, l);
+	gettimeofday(&stop, NULL);
 
-	pointset x = toplevelalgorithm (*t, g);
+
 	printf("Minimum Dominating Set is of size %d\n",x.size);
-	for (int i=0;i<x.size;i++){
+/*	for (int i=0;i<x.size;i++){
 		printf("%d %d\n",g.pos[3*x.members[i]+1], g.pos[3*x.members[i]+2]);
-	}
+	}*/
 	//printf("\n");
 
 	//generatePlotFile (*t, g);
 
-	gettimeofday(&stop, NULL);
+
 	int timeToSet=stop.tv_usec - start.tv_usec;
 
 	printf("Time elapsed for set=%d\n",timeToSet);
