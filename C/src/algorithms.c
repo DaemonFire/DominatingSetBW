@@ -11,26 +11,40 @@
 #include <sys/stat.h>
 #define MAT(mat,x,y,n) (mat[x*n+y])
 
+int tocompute;
+dectree** nodestocompute;
 
-cutdata cutThatTree (graph* g, dectree* t, int choiceofson){
+int getnumberofnodes(dectree* t){
+	int n=1;
+	if (t->left!=NULL)
+		n+=getnumberofnodes(t->left);
+	if (t->right!=NULL)
+		n+=getnumberofnodes(t->right);
+	return n;
+}
+
+int fillThevoid (dectree* t, graph* g){
+	t->computed=0;
+	nodestocompute[tocompute]=t;
+	tocompute++;
+	if (t->left!=NULL)
+		fillThevoid(t->left, g);
+	if (t->right!=NULL)
+		fillThevoid(t->right, g);
+	return EXIT_SUCCESS;
+}
+
+cutdata cutThatTree (graph* g, dectree* t){
 	cutdata c;
 	c.na=0;
 	c.nacomp=0;
 	c.a=NULL;
 	c.acomp=NULL;
 
-	if (choiceofson==0){
-		c.na=getnumberofleaves (*(t->left));
-		c.a=(int*)malloc(c.na*sizeof(int));
-		getallleaves(*(t->left), c.a);
-	}
-
-	else {
-		c.na=getnumberofleaves (*(t->right));
-		c.a=(int*)malloc(c.na*sizeof(int));
-		getallleaves (*(t->right),c.a);
-	}
-
+	c.na=getnumberofleaves (*(t));
+	c.a=(int*)malloc(c.na*sizeof(int));
+	getallleaves(*(t), c.a);
+	
 	c.nacomp=g->size-c.na;
 
 	c.acomp=(int*)malloc(c.nacomp*sizeof(int));
@@ -409,6 +423,12 @@ int findTwins(int n,int* mat,int* twins){
 
 int secondpreprocess (cutdata* c, graph* g){
 
+	c->lra=NULL;
+	c->lnra=NULL;
+	c->lracomp=NULL;
+	c->lnracomp=NULL;
+	c->assoc=NULL;
+	c->assoccomp=NULL;
 	c->lra=(pointset*)malloc(4*c->nrep*c->nrep*c->nrep*c->nrep*sizeof(pointset));	//TODO: Find more accurate measures of memory needed for 
 	c->lnra=(pointset*)malloc(4*c->nrep*c->nrep*c->nrep*c->nrep*sizeof(pointset)); //those allocations
 	c->lracard=1;
@@ -768,15 +788,28 @@ pointset toplevelalgorithm (dectree* t, graph* g){
 		s.size=-1;
 		return s;
 	}
-	cutdata *c = (cutdata*)malloc(2*sizeof(cutdata));
-	stepalgorithm(t,g);
-	cutdata c1 = t->c1;
-	cutdata c2= t->c2;
+
+	int nnodes = getnumberofnodes(t)-1;
+	tocompute=0;
+	nodestocompute=(dectree**)malloc(nnodes*sizeof(dectree*));
+	if (t->right!=NULL)
+		fillThevoid(t->right,g);
+
+	if (t->left!=NULL)
+		fillThevoid(t->left, g);
+	int i=0;
+	while (tocompute!=0){
+		if (nodestocompute[i]->computed==0)
+			stepalgorithm(nodestocompute[i],g);
+		i=(i+1)%nnodes;
+	}
+	cutdata c1 = t->left->c;
+	cutdata c2= t->right->c;
 	int size=-1;	
-	int amax;
-	int acmax;
-	int bmax;
-	int bcmax;
+	int amax=-1;
+	int acmax=-1;
+	int bmax=-1;
+	int bcmax=-1;
 
 	for (int i=0;i<c1.lracard;i++){
 		for (int j=0;j<c2.lracard;j++){
@@ -907,11 +940,11 @@ pointset toplevelalgorithm (dectree* t, graph* g){
 			if (size==-1){
 				if ((c1.tab[i*c1.lracompcard+qindex]!=-1)&&(c2.tab[j*c2.lracompcard+pindex]!=-1)){
 					size = c1.tab[i*c1.lracompcard+qindex]+c2.tab[j*c2.lracompcard+pindex];
-						amax = i;
-						acmax = qindex;
-						bmax= j;
-						bcmax = pindex;
-					}
+					amax = i;
+					acmax = qindex;
+					bmax= j;
+					bcmax = pindex;
+				}
 			}
 			else {
 				if ((c1.tab[i*c1.lracompcard+qindex]!=-1)&&(c2.tab[j*c2.lracompcard+pindex]!=-1)){
@@ -927,786 +960,424 @@ pointset toplevelalgorithm (dectree* t, graph* g){
 		}
 	}
 	pointset sol;
-	sol.size=0;
+	sol.size=c1.tab[amax*c1.lracompcard+acmax];
 	sol.members= (int*)malloc(size*sizeof(int));
-	sol = computeDS (t, c1.tab[amax*c1.lracompcard+acmax], amax, acmax, c2.tab[bmax*c2.lracompcard+bcmax], bmax, bcmax);
+	sol = computeDS (t->left, c1.tab[amax*c1.lracompcard+acmax], amax, acmax);
+	pointset tmp;
+	tmp.size=c2.tab[bmax*c2.lracompcard+bcmax];
+	tmp.members= (int*)malloc(tmp.size*sizeof(int));
+	tmp = computeDS (t->right, c2.tab[bmax*c2.lracompcard+bcmax], bmax, bcmax);
+
+	for (int i=0; i<tmp.size; i++){
+		sol.members[sol.size]=tmp.members[i];
+		sol.size++;
+	}
 	return sol;
 }
 
 
 int stepalgorithm (dectree* t, graph* g){
 
-	if ((t->right==NULL)||(t->left==NULL))
-		t->live=0;
-
-	else {
-		t->live=1;
-		pointset s;
-		s.size=0;
-		pasta sp;
-		sp.where=s;
-		sp.howmany=0;
-		pastabox spb;
-		spb.inleft=sp;
-		spb.inright=sp;
-		cutdata c1 = cutThatTree (g, t, 0);
-
-		firstpreprocess (g,&c1);
-		secondpreprocess (&c1, g);
-		thirdpreprocess (&c1, g);
-
-		c1.tab = (int*)malloc(c1.lracard*c1.lracompcard*sizeof(int));
-		c1.box = (pastabox*)malloc(c1.lracard*c1.lracompcard*sizeof(pastabox));
-		for (int i= 0; i<c1.lracard*c1.lracompcard; i++){
-			c1.tab[i]=-1;
-			c1.box[i]=spb;
-		}
-
-		cutdata c2 = cutThatTree (g, t, 1);
-
-		firstpreprocess (g,&c2);
-		secondpreprocess (&c2, g);
-		thirdpreprocess (&c2, g);
-		
-		c2.tab = (int*)malloc(c2.lracard*c2.lracompcard*sizeof(int));
-		c2.box = (pastabox*)malloc(c2.lracard*c2.lracompcard*sizeof(pastabox));
-		for (int i= 0; i<c2.lracard*c2.lracompcard; i++){
-			c2.tab[i]=-1;
-			c2.box[i]=spb;
-		}
-
-		stepalgorithm (t->left, g);
-		stepalgorithm (t->right, g);
-		dectree p=*(t->left);
-		dectree q=*(t->right);
-		if (p.live==1){
-			cutdata c11=p.c1;
-			cutdata c12=p.c2;
-
-			for (int i=0; i< c11.lracard; i++){
-				for (int j= 0;j < c12.lracard; j++){
-					for (int k=0; k< c1.lracompcard; k++){
-						pointset ra = c11.lra[i];
-						pointset rb = c12.lra[j];
-						pointset rwc = c1.lracomp[k];
-						pointset ua;
-						ua.size = rb.size;
-						ua.members = (int*) malloc ((rb.size+rwc.size)*sizeof(int));
-						for (int l = 0; l<rb.size;l++)
-							ua.members[l]=rb.members[l];
-						for (int l=0; l<rwc.size;l++){
-							int alreadyin = 0;
-							for (int m = 0; m<ua.size; m++){
-								if (ua.members[m]==rwc.members[l]){
-									alreadyin = 1;
-									break;
-								}
-							}
-							if (alreadyin==0){
-								ua.size++;
-								ua.members[ua.size-1]=rwc.members[l];
-							}
-						}
-
-						pointset rac;
-						rac.size=0;
-						rac.members= (int*)malloc(c11.lracompcard*sizeof(int));
-
-						for (int l=0; l<ua.size; l++){
-							int z=0;
-							int y=0;
-							int x=0;
-							for (int m=0; m<c11.nacomp;m++){
-								if (c11.pointtorepincomp[2*m]==ua.members[l]){
-									z=c11.pointtorepincomp[2*m+1];
-									break;
-								}
-							} 
-							for (int m=0; m<c11.nrepincomp; m++){
-								if (c11.complementtc[m]==z){
-									x=m;
-									break;
-								}
-							}
-							for (int m=0;m<c11.lracompcard;m++){
-								int common=0;
-								if (c11.lracomp[m].size==rac.size){
-									for (int n=0; n<rac.size; n++){
-										for (int o=0; o<c11.lracomp[m].size; o++){
-											if (c11.lracomp[m].members[o]==rac.members[n]){
-												common++;
-												break;
-											}
-										}
-									}
-									if (common==rac.size){
-										y = m;
-										break;
-									}
-								}
-							}
-
-							rac = c11.mcomp[y*c11.nrepincomp+x];
-						}
-
-						pointset ub;
-						ub.size = ra.size;
-						ub.members = (int*) malloc ((ra.size+rwc.size)*sizeof(int));
-						for (int l = 0; l<ra.size;l++)
-							ub.members[l]=ra.members[l];
-						for (int l=0; l<rwc.size;l++){
-							int alreadyin = 0;
-							for (int m = 0; m<ub.size; m++){
-								if (ub.members[m]==rwc.members[l]){
-									alreadyin = 1;
-									break;
-								}
-							}
-							if (alreadyin==0){
-								ub.size++;
-								ub.members[ub.size-1]=rwc.members[l];
-							}
-						}
-						pointset rbc;
-						rbc.size=0;
-						rbc.members= (int*)malloc(c12.lracompcard*sizeof(int));
-
-						for (int l=0; l<ub.size; l++){
-							int z=0;
-							int y=0;
-							int x=0;
-							for (int m=0; m<c12.nacomp;m++){
-								if (c12.pointtorepincomp[2*m]==ub.members[l]){
-									z=c12.pointtorepincomp[2*m+1];
-									break;
-								}
-							} 
-							for (int m=0;m<c12.nrepincomp;m++){
-								if (c12.complementtc[m]==z){
-									x=m;
-									break;
-								}
-							}
-							for (int m=0;m<c12.lracompcard;m++){
-								int common=0;
-								if (c12.lracomp[m].size==rbc.size){
-									for (int n=0; n<rbc.size; n++){
-										for (int o=0; o<c12.lracomp[m].size; o++){
-											if (c12.lracomp[m].members[o]==rbc.members[n]){
-												common++;
-												break;
-											}
-										}
-									}
-									if (common==rbc.size){
-										y = m;
-										break;
-									}
-								}
-							}
-							rbc = c12.mcomp[y*c12.nrepincomp+x];
-						}
-
-						pointset uw;
-						uw.size = ra.size;
-						uw.members = (int*) malloc ((ra.size+rb.size)*sizeof(int));
-						for (int l = 0; l<ra.size;l++)
-							uw.members[l]=ra.members[l];
-						for (int l=0; l<rb.size;l++){
-							int alreadyin = 0;
-							for (int m = 0; m<uw.size; m++){
-								if (uw.members[m]==rb.members[l]){
-									alreadyin = 1;
-									break;
-								}
-							}
-							if (alreadyin==0){
-								uw.size++;
-								uw.members[uw.size-1]=rb.members[l];
-							}
-						}
-
-						pointset rw;
-						rw.size=0;
-						rw.members= (int*)malloc(c1.lracard*sizeof(int));
-
-						for (int l=0; l<uw.size; l++){
-							int z=0;
-							int y=0;
-							int x=0;
-							for (int m=0; m<c1.na;m++){
-								if (c1.pointtorep[2*m]==uw.members[l]){
-									z=c1.pointtorep[2*m+1];
-									break;
-								}
-							} 
-							for (int m=0;m<c1.nrep;m++){
-								if (c1.tc[m]==z){
-									x=m;
-									break;
-								}
-							}
-							for (int m=0;m<c1.lracard;m++){
-								int common=0;
-								if (c1.lra[m].size==rw.size){
-									for (int n=0; n<rw.size; n++){
-										for (int o=0; o<c1.lra[m].size; o++){
-											if (c1.lra[m].members[o]==rw.members[n]){
-												common++;
-												break;
-											}
-										}
-									}
-									if (common==rw.size){
-										y = m;
-										break;
-									}
-								}
-							}
-							rw = c1.m[y*c1.nrep+x];
-						}
-
-						int ain=0;
-						int bin=0;
-						int win=0;
-						int acin=0;
-						int bcin=0;
-						int wcin=0;
-							
-						for (int l=0;l<c11.lracard;l++){
-							if (c11.lra[l].size==ra.size){
-								int common=0;
-								for (int m=0;m<c11.lra[l].size;m++){
-									for (int n=0;n<ra.size; n++){
-										if (c11.lra[l].members[m]==ra.members[n]){
-											common ++;
-											break;
-										}
-									}
-								}
-								if (common==ra.size){
-									ain=l;
-									break;
-								}
-							}
-						}
-
-						for (int l=0;l<c12.lracard;l++){
-							if (c12.lra[l].size==rb.size){
-								int common=0;
-								for (int m=0;m<c12.lra[l].size;m++){
-									for (int n=0;n<rb.size; n++){
-										if (c12.lra[l].members[m]==rb.members[n]){
-											common ++;
-											break;
-										}
-									}
-								}
-								if (common==rb.size){
-									bin=l;
-									break;
-								}
-							}
-						}
-
-
-						for (int l=0;l<c1.lracard;l++){
-							if (c1.lra[l].size==rw.size){
-								int common=0;
-								for (int m=0;m<c1.lra[l].size;m++){
-									for (int n=0;n<rw.size; n++){
-										if (c1.lra[l].members[m]==rw.members[n]){
-											common ++;
-											break;
-										}
-									}
-								}
-								if (common==rw.size){
-									win=l;
-									break;
-								}
-							}
-						}
-
-
-						for (int l=0;l<c11.lracompcard;l++){
-							if (c11.lracomp[l].size==rac.size){
-								int common=0;
-								for (int m=0;m<c11.lracomp[l].size;m++){
-									for (int n=0;n<rac.size; n++){
-										if (c11.lracomp[l].members[m]==rac.members[n]){
-											common ++;
-											break;
-										}
-									}
-								}
-								if (common==rac.size){
-									acin=l;
-									break;
-								}
-							}
-						}
-
-
-						for (int l=0;l<c12.lracompcard;l++){
-							if (c12.lracomp[l].size==rbc.size){
-								int common=0;
-								for (int m=0;m<c12.lracomp[l].size;m++){
-									for (int n=0;n<rbc.size; n++){
-										if (c12.lracomp[l].members[m]==rbc.members[n]){
-											common ++;
-											break;
-										}
-									}
-								}
-								if (common==rbc.size){
-									bcin=l;
-									break;
-								}
-							}
-						}
-
-
-						for (int l=0;l<c1.lracompcard;l++){
-							if (c1.lracomp[l].size==rwc.size){
-								int common=0;
-								for (int m=0;m<c1.lracomp[l].size;m++){
-									for (int n=0;n<rwc.size; n++){
-										if (c1.lracomp[l].members[m]==rwc.members[n]){
-											common ++;
-											break;
-										}
-									}
-								}
-								if (common==rwc.size){
-									wcin=l;
-									break;
-								}
-							}
-						}
-
-						
-						if ((c11.tab[ain*c11.lracompcard+acin]!=-1)&&(c12.tab[bin*c12.lracompcard+bcin]!=-1)){
-							if ((c1.tab[win*c1.lracompcard+wcin]==-1)||(c1.tab[win*c1.lracompcard+wcin]>c11.tab[ain*c11.lracompcard+acin]+c12.tab[bin*c12.lracompcard+bcin])){
-			
-								c1.tab[win*c1.lracompcard+wcin]=c11.tab[ain*c11.lracompcard+acin]+c12.tab[bin*c12.lracompcard+bcin];
-
-								pasta pasta1;
-								pasta1.where=c11.lra[ain];
-								pasta1.howmany=c11.tab[ain*c11.lracompcard+acin];
-
-								pasta pasta2;
-								pasta2.where=c12.lra[bin];
-								pasta2.howmany=c12.tab[bin*c12.lracompcard+bcin];
-
-								pastabox pastab;
-								pastab.inleft=pasta1;
-								pastab.inright=pasta2;
-
-								c1.box[win*c1.lracompcard+wcin]=pastab;
-							}
-						}					
-
-		
-					}
-			
-				}
-			
-			}
-		}
-		else {
-			c1.tab[0]=-1;
-			c1.tab[1]=0;
-			c1.tab[2]=1;
-			c1.tab[3]=1;
-		}
-
-		if (q.live==1){
-			cutdata c11=q.c1;
-			cutdata c12=q.c2;
-
-			for (int i=0; i< c11.lracard; i++){
-				for (int j= 0;j < c12.lracard; j++){
-					for (int k=0; k< c2.lracompcard; k++){
-						pointset ra = c11.lra[i];
-						pointset rb = c12.lra[j];
-						pointset rwc = c2.lracomp[k];
-
-						pointset ua;
-						ua.size = rb.size;
-						ua.members = (int*) malloc ((rb.size+rwc.size)*sizeof(int));
-						for (int l = 0; l<rb.size;l++)
-							ua.members[l]=rb.members[l];
-						for (int l=0; l<rwc.size;l++){
-							int alreadyin = 0;
-							for (int m = 0; m<ua.size; m++){
-								if (ua.members[m]==rwc.members[l]){
-									alreadyin = 1;
-									break;
-								}
-							}
-							if (alreadyin==0){
-								ua.size++;
-								ua.members[ua.size-1]=rwc.members[l];
-							}
-						}
-
-						pointset rac;
-						rac.size=0;
-						rac.members= (int*)malloc(c11.lracompcard*sizeof(int));
-
-						for (int l=0; l<ua.size; l++){
-							int z=0;
-							int y=0;
-							int x=0;
-							for (int m=0; m<c11.nacomp;m++){
-								if (c11.pointtorepincomp[2*m]==ua.members[l]){
-									z=c11.pointtorepincomp[2*m+1];
-									break;
-								}
-							} 
-							for (int m=0; m<c11.nrepincomp; m++){
-								if (c11.complementtc[m]==z){
-									x=m;
-									break;
-								}
-							}
-							for (int m=0;m<c11.lracompcard;m++){
-								int common=0;
-								if (c11.lracomp[m].size==rac.size){
-									for (int n=0; n<rac.size; n++){
-										for (int o=0; o<c11.lracomp[m].size; o++){
-											if (c11.lracomp[m].members[o]==rac.members[n]){
-												common++;
-												break;
-											}
-										}
-									}
-									if (common==rac.size){
-										y = m;
-										break;
-									}
-								}
-							}
-
-							rac = c11.mcomp[y*c11.nrepincomp+x];
-						}
-
-						pointset ub;
-						ub.size = ra.size;
-						ub.members = (int*) malloc ((ra.size+rwc.size)*sizeof(int));
-						for (int l = 0; l<ra.size;l++)
-							ub.members[l]=ra.members[l];
-						for (int l=0; l<rwc.size;l++){
-							int alreadyin = 0;
-							for (int m = 0; m<ub.size; m++){
-								if (ub.members[m]==rwc.members[l]){
-									alreadyin = 1;
-									break;
-								}
-							}
-							if (alreadyin==0){
-								ub.size++;
-								ub.members[ub.size-1]=rwc.members[l];
-							}
-						}
-						pointset rbc;
-						rbc.size=0;
-						rbc.members= (int*)malloc(c12.lracompcard*sizeof(int));
-
-						for (int l=0; l<ub.size; l++){
-							int z=0;
-							int y=0;
-							int x=0;
-							for (int m=0; m<c12.nacomp;m++){
-								if (c12.pointtorepincomp[2*m]==ub.members[l]){
-									z=c12.pointtorepincomp[2*m+1];
-									break;
-								}
-							} 
-							for (int m=0;m<c12.nrepincomp;m++){
-								if (c12.complementtc[m]==z){
-									x=m;
-									break;
-								}
-							}
-							for (int m=0;m<c12.lracompcard;m++){
-								int common=0;
-								if (c12.lracomp[m].size==rbc.size){
-									for (int n=0; n<rbc.size; n++){
-										for (int o=0; o<c12.lracomp[m].size; o++){
-											if (c12.lracomp[m].members[o]==rbc.members[n]){
-												common++;
-												break;
-											}
-										}
-									}
-									if (common==rbc.size){
-										y = m;
-										break;
-									}
-								}
-							}
-							rbc = c12.mcomp[y*c12.nrepincomp+x];
-						}
-
-						pointset uw;
-						uw.size = ra.size;
-						uw.members = (int*) malloc ((ra.size+rb.size)*sizeof(int));
-						for (int l = 0; l<ra.size;l++)
-							uw.members[l]=ra.members[l];
-						for (int l=0; l<rb.size;l++){
-							int alreadyin = 0;
-							for (int m = 0; m<uw.size; m++){
-								if (uw.members[m]==rb.members[l]){
-									alreadyin = 1;
-									break;
-								}
-							}
-							if (alreadyin==0){
-								uw.size++;
-								uw.members[uw.size-1]=rb.members[l];
-							}
-						}
-
-						pointset rw;
-						rw.size=0;
-						rw.members= (int*)malloc(c2.lracard*sizeof(int));
-
-						for (int l=0; l<uw.size; l++){
-							int z=0;
-							int y=0;
-							int x=0;
-							for (int m=0; m<c2.na;m++){
-								if (c2.pointtorep[2*m]==uw.members[l]){
-									z=c2.pointtorep[2*m+1];
-									break;
-								}
-							} 
-							for (int m=0;m<c2.nrep;m++){
-								if (c2.tc[m]==z){
-									x=m;
-									break;
-								}
-							}
-							for (int m=0;m<c2.lracard;m++){
-								int common=0;
-								if (c2.lra[m].size==rw.size){
-									for (int n=0; n<rw.size; n++){
-										for (int o=0; o<c2.lra[m].size; o++){
-											if (c2.lra[m].members[o]==rw.members[n]){
-												common++;
-												break;
-											}
-										}
-									}
-									if (common==rw.size){
-										y = m;
-										break;
-									}
-								}
-							}
-							rw = c2.m[y*c2.nrep+x];
-						}
-
-						int ain=0;
-						int bin=0;
-						int win=0;
-						int acin=0;
-						int bcin=0;
-						int wcin=0;
-							
-						for (int l=0;l<c11.lracard;l++){
-							if (c11.lra[l].size==ra.size){
-								int common=0;
-								for (int m=0;m<c11.lra[l].size;m++){
-									for (int n=0;n<ra.size; n++){
-										if (c11.lra[l].members[m]==ra.members[n]){
-											common ++;
-											break;
-										}
-									}
-								}
-								if (common==ra.size){
-									ain=l;
-									break;
-								}
-							}
-						}
-
-						for (int l=0;l<c12.lracard;l++){
-							if (c12.lra[l].size==rb.size){
-								int common=0;
-								for (int m=0;m<c12.lra[l].size;m++){
-									for (int n=0;n<rb.size; n++){
-										if (c12.lra[l].members[m]==rb.members[n]){
-											common ++;
-											break;
-										}
-									}
-								}
-								if (common==rb.size){
-									bin=l;
-									break;
-								}
-							}
-						}
-
-
-						for (int l=0;l<c2.lracard;l++){
-							if (c2.lra[l].size==rw.size){
-								int common=0;
-								for (int m=0;m<c2.lra[l].size;m++){
-									for (int n=0;n<rw.size; n++){
-										if (c2.lra[l].members[m]==rw.members[n]){
-											common ++;
-											break;
-										}
-									}
-								}
-								if (common==rw.size){
-									win=l;
-									break;
-								}
-							}
-						}
-
-
-						for (int l=0;l<c11.lracompcard;l++){
-							if (c11.lracomp[l].size==rac.size){
-								int common=0;
-								for (int m=0;m<c11.lracomp[l].size;m++){
-									for (int n=0;n<rac.size; n++){
-										if (c11.lracomp[l].members[m]==rac.members[n]){
-											common ++;
-											break;
-										}
-									}
-								}
-								if (common==rac.size){
-									acin=l;
-									break;
-								}
-							}
-						}
-
-
-						for (int l=0;l<c12.lracompcard;l++){
-							if (c12.lracomp[l].size==rbc.size){
-								int common=0;
-								for (int m=0;m<c12.lracomp[l].size;m++){
-									for (int n=0;n<rbc.size; n++){
-										if (c12.lracomp[l].members[m]==rbc.members[n]){
-											common ++;
-											break;
-										}
-									}
-								}
-								if (common==rbc.size){
-									bcin=l;
-									break;
-								}
-							}
-						}
-
-
-						for (int l=0;l<c2.lracompcard;l++){
-							if (c2.lracomp[l].size==rwc.size){
-								int common=0;
-								for (int m=0;m<c2.lracomp[l].size;m++){
-									for (int n=0;n<rwc.size; n++){
-										if (c2.lracomp[l].members[m]==rwc.members[n]){
-											common ++;
-											break;
-										}
-									}
-								}
-								if (common==rwc.size){
-									wcin=l;
-									break;
-								}
-							}
-						}
-
-
-						if ((c11.tab[ain*c11.lracompcard+acin]!=-1)&&(c12.tab[bin*c12.lracompcard+bcin]!=-1)){
-							if ((c2.tab[win*c2.lracompcard+wcin]==-1)||(c2.tab[win*c2.lracompcard+wcin]>c11.tab[ain*c11.lracompcard+acin]+c12.tab[bin*c12.lracompcard+bcin])){
-								
-								c2.tab[win*c2.lracompcard+wcin]=c11.tab[ain*c11.lracompcard+acin]+c12.tab[bin*c12.lracompcard+bcin];
-
-								pasta pasta1;
-								pasta1.where=c11.lra[ain];
-								pasta1.howmany=c11.tab[ain*c11.lracompcard+acin];
-
-								pasta pasta2;
-								pasta2.where=c12.lra[bin];
-								pasta2.howmany=c12.tab[bin*c12.lracompcard+bcin];
-
-								pastabox pastab;
-								pastab.inleft=pasta1;
-								pastab.inright=pasta2;
-
-								c2.box[win*c2.lracompcard+wcin]=pastab;
-							}
-						}					
-
-		
-					}
-			
-				}
-			
-			}
-			}
-			else {
-
-				c2.tab[0]=-1;
-				c2.tab[1]=0;
-				c2.tab[2]=1;
-				c2.tab[3]=1;
-
-			}
-
-			t->c1=c1;
-			t->c2=c2;
-		}
-
-	return EXIT_SUCCESS;
-}
-
-pointset computeDS (dectree* t, int muchleft, int aleft, int acleft, int muchright, int bright, int bcright){
-	pointset p;
-	p.size=0;
-	p.members=(int*)malloc((t->c1.na+t->c2.na)*sizeof(int));
-
-	if ((t->left->left==NULL)&&(t->left->right==NULL)&&(muchleft==1)){
-		p.size++;
-		p.members[p.size-1]=t->c1.tc[0];
+	if ((t->left!=0)&&(t->right!=NULL)){
+		if ((t->right->computed==0)||(t->left->computed==0))
+			return 0;
 	}
 
-	else if (muchleft!=0){
+	pointset s;
+	s.size=0;
+	pasta sp;
+	sp.where=s;
+	sp.howmany=0;
+	pastabox spb;
+	spb.inleft=sp;
+	spb.inright=sp;
+	t->c = cutThatTree (g, t);
+	firstpreprocess (g,&(t->c));
+	secondpreprocess (&(t->c), g);
+	thirdpreprocess (&(t->c), g);
 
-		pastabox pbleft = t->c1.box[aleft*t->c1.lracompcard+acleft];
+	t->c.tab = (int*)malloc(t->c.lracard*t->c.lracompcard*sizeof(int));
+	t->c.box = (pastabox*)malloc(t->c.lracard*t->c.lracompcard*sizeof(pastabox));
+	for (int i= 0; i<t->c.lracard*t->c.lracompcard; i++){
+		t->c.tab[i]=-1;
+		t->c.box[i]=spb;
+	}
+
+	if ((t->left!=NULL)&&(t->right!=NULL)){
+		for (int i=0; i< t->left->c.lracard; i++){
+			for (int j= 0;j < t->right->c.lracard; j++){
+				for (int k=0; k< t->c.lracompcard; k++){
+					pointset ra = t->left->c.lra[i];
+					pointset rb = t->right->c.lra[j];
+					pointset rwc = t->c.lracomp[k];
+					pointset ua;
+					ua.size = rb.size;
+					ua.members = (int*) malloc ((rb.size+rwc.size)*sizeof(int));
+					for (int l = 0; l<rb.size;l++)
+						ua.members[l]=rb.members[l];
+					for (int l=0; l<rwc.size;l++){
+						int alreadyin = 0;
+						for (int m = 0; m<ua.size; m++){
+							if (ua.members[m]==rwc.members[l]){
+								alreadyin = 1;
+								break;
+							}
+						}
+						if (alreadyin==0){
+							ua.size++;
+							ua.members[ua.size-1]=rwc.members[l];
+						}
+					}
+					pointset rac;
+					rac.size=0;
+					rac.members= (int*)malloc(t->left->c.lracompcard*sizeof(int));
+
+					for (int l=0; l<ua.size; l++){
+						int z=0;
+						int y=0;
+						int x=0;
+						for (int m=0; m<t->left->c.nacomp;m++){
+							if (t->left->c.pointtorepincomp[2*m]==ua.members[l]){
+								z=t->left->c.pointtorepincomp[2*m+1];
+								break;
+							}
+						} 
+						for (int m=0; m<t->left->c.nrepincomp; m++){
+							if (t->left->c.complementtc[m]==z){
+								x=m;
+								break;
+							}
+						}
+						for (int m=0;m<t->left->c.lracompcard;m++){
+							int common=0;
+							if (t->left->c.lracomp[m].size==rac.size){
+								for (int n=0; n<rac.size; n++){
+									for (int o=0; o<t->left->c.lracomp[m].size; o++){
+										if (t->left->c.lracomp[m].members[o]==rac.members[n]){
+											common++;
+											break;
+										}
+									}
+								}
+								if (common==rac.size){
+									y = m;
+									break;
+								}
+							}
+						}
+						rac = t->left->c.mcomp[y*t->left->c.nrepincomp+x];
+					}
+
+					pointset ub;
+					ub.size = ra.size;
+					ub.members = (int*) malloc ((ra.size+rwc.size)*sizeof(int));
+					for (int l = 0; l<ra.size;l++)
+						ub.members[l]=ra.members[l];
+					for (int l=0; l<rwc.size;l++){
+						int alreadyin = 0;
+						for (int m = 0; m<ub.size; m++){
+							if (ub.members[m]==rwc.members[l]){
+								alreadyin = 1;
+								break;
+							}
+						}
+						if (alreadyin==0){
+							ub.size++;
+							ub.members[ub.size-1]=rwc.members[l];
+						}
+					}
+					pointset rbc;
+					rbc.size=0;
+					rbc.members= (int*)malloc(t->right->c.lracompcard*sizeof(int));
+
+					for (int l=0; l<ub.size; l++){
+						int z=0;
+						int y=0;
+						int x=0;
+						for (int m=0; m<t->right->c.nacomp;m++){
+							if (t->right->c.pointtorepincomp[2*m]==ub.members[l]){
+								z=t->right->c.pointtorepincomp[2*m+1];
+								break;
+							}
+						} 
+						for (int m=0;m<t->right->c.nrepincomp;m++){
+							if (t->right->c.complementtc[m]==z){
+								x=m;
+								break;
+							}
+						}
+						for (int m=0;m<t->right->c.lracompcard;m++){
+							int common=0;
+							if (t->right->c.lracomp[m].size==rbc.size){
+								for (int n=0; n<rbc.size; n++){
+									for (int o=0; o<t->right->c.lracomp[m].size; o++){
+										if (t->right->c.lracomp[m].members[o]==rbc.members[n]){
+											common++;
+											break;
+										}
+									}
+								}
+								if (common==rbc.size){
+									y = m;
+									break;
+								}
+							}
+						}
+						rbc = t->right->c.mcomp[y*t->right->c.nrepincomp+x];
+					}
+
+					pointset uw;
+					uw.size = ra.size;
+					uw.members = (int*) malloc ((ra.size+rb.size)*sizeof(int));
+					for (int l = 0; l<ra.size;l++)
+						uw.members[l]=ra.members[l];
+					for (int l=0; l<rb.size;l++){
+						int alreadyin = 0;
+						for (int m = 0; m<uw.size; m++){
+							if (uw.members[m]==rb.members[l]){
+								alreadyin = 1;
+								break;
+							}
+						}
+						if (alreadyin==0){
+							uw.size++;
+							uw.members[uw.size-1]=rb.members[l];
+						}
+					}
+
+					pointset rw;
+					rw.size=0;
+					rw.members= (int*)malloc(t->c.lracard*sizeof(int));
+
+					for (int l=0; l<uw.size; l++){
+						int z=0;
+						int y=0;
+						int x=0;
+						for (int m=0; m<t->c.na;m++){
+							if (t->c.pointtorep[2*m]==uw.members[l]){
+								z=t->c.pointtorep[2*m+1];
+								break;
+							}
+						} 
+						for (int m=0;m<t->c.nrep;m++){
+							if (t->c.tc[m]==z){
+								x=m;
+								break;
+							}
+						}
+						for (int m=0;m<t->c.lracard;m++){
+							int common=0;
+							if (t->c.lra[m].size==rw.size){
+								for (int n=0; n<rw.size; n++){
+									for (int o=0; o<t->c.lra[m].size; o++){
+										if (t->c.lra[m].members[o]==rw.members[n]){
+											common++;
+											break;
+										}
+									}
+								}
+								if (common==rw.size){
+									y = m;
+									break;
+								}
+							}
+						}
+						rw = t->c.m[y*t->c.nrep+x];
+					}
+
+					int ain=0;
+					int bin=0;
+					int win=0;
+					int acin=0;
+					int bcin=0;
+					int wcin=0;
+							
+					for (int l=0;l<t->left->c.lracard;l++){
+						if (t->left->c.lra[l].size==ra.size){
+							int common=0;
+							for (int m=0;m<t->left->c.lra[l].size;m++){
+								for (int n=0;n<ra.size; n++){
+									if (t->left->c.lra[l].members[m]==ra.members[n]){
+										common ++;
+										break;
+									}
+								}
+							}
+							if (common==ra.size){
+								ain=l;
+								break;
+							}
+						}
+					}
+
+					for (int l=0;l<t->right->c.lracard;l++){
+						if (t->right->c.lra[l].size==rb.size){
+							int common=0;
+							for (int m=0;m<t->right->c.lra[l].size;m++){
+								for (int n=0;n<rb.size; n++){
+									if (t->right->c.lra[l].members[m]==rb.members[n]){
+										common ++;
+										break;
+									}
+								}
+							}
+							if (common==rb.size){
+								bin=l;
+								break;
+							}
+						}
+					}
+
+
+					for (int l=0;l<t->c.lracard;l++){
+						if (t->c.lra[l].size==rw.size){
+							int common=0;
+							for (int m=0;m<t->c.lra[l].size;m++){
+								for (int n=0;n<rw.size; n++){
+									if (t->c.lra[l].members[m]==rw.members[n]){
+										common ++;
+										break;
+									}
+								}
+							}
+							if (common==rw.size){
+								win=l;
+								break;
+							}
+						}
+					}
+
+					for (int l=0;l<t->left->c.lracompcard;l++){
+						if (t->left->c.lracomp[l].size==rac.size){
+							int common=0;
+							for (int m=0;m<t->left->c.lracomp[l].size;m++){
+								for (int n=0;n<rac.size; n++){
+									if (t->left->c.lracomp[l].members[m]==rac.members[n]){
+										common ++;
+										break;
+									}
+								}
+							}
+							if (common==rac.size){
+								acin=l;
+								break;
+							}
+						}
+					}
+
+
+					for (int l=0;l<t->right->c.lracompcard;l++){
+						if (t->right->c.lracomp[l].size==rbc.size){
+							int common=0;
+							for (int m=0;m<t->right->c.lracomp[l].size;m++){
+								for (int n=0;n<rbc.size; n++){
+									if (t->right->c.lracomp[l].members[m]==rbc.members[n]){
+										common ++;
+										break;
+									}
+								}
+							}
+							if (common==rbc.size){
+								bcin=l;
+								break;
+							}
+						}
+					}
+
+
+					for (int l=0;l<t->c.lracompcard;l++){
+						if (t->c.lracomp[l].size==rwc.size){
+							int common=0;
+							for (int m=0;m<t->c.lracomp[l].size;m++){
+								for (int n=0;n<rwc.size; n++){
+									if (t->c.lracomp[l].members[m]==rwc.members[n]){
+										common ++;
+										break;
+									}
+								}
+							}
+							if (common==rwc.size){
+								wcin=l;
+								break;
+							}
+						}
+					}
+
+						
+					if ((t->left->c.tab[ain*t->left->c.lracompcard+acin]!=-1)&&(t->right->c.tab[bin*t->right->c.lracompcard+bcin]!=-1)){
+						if ((t->c.tab[win*t->c.lracompcard+wcin]==-1)||(t->c.tab[win*t->c.lracompcard+wcin]>t->left->c.tab[ain*t->left->c.lracompcard+acin]+t->right->c.tab[bin*t->right->c.lracompcard+bcin])){
+			
+							t->c.tab[win*t->c.lracompcard+wcin]=t->left->c.tab[ain*t->left->c.lracompcard+acin]+t->right->c.tab[bin*t->right->c.lracompcard+bcin];
+
+							pasta pasta1;
+							pasta1.where=t->left->c.lra[ain];
+							pasta1.howmany=t->left->c.tab[ain*t->left->c.lracompcard+acin];
+
+							pasta pasta2;
+							pasta2.where=t->right->c.lra[bin];
+							pasta2.howmany=t->right->c.tab[bin*t->right->c.lracompcard+bcin];
+
+							pastabox pastab;
+							pastab.inleft=pasta1;
+							pastab.inright=pasta2;
+							t->c.box[win*t->c.lracompcard+wcin]=pastab;
+						}
+					}					
+
+	
+				}
+		
+			}
+			
+		}
+	}
+	else {
+		t->c.tab[0]=-1;
+		t->c.tab[1]=0;
+		t->c.tab[2]=1;
+		t->c.tab[3]=1;
+	}
+	t->computed=1;
+	tocompute--;
+	return EXIT_SUCCESS;
+
+}
+
+
+pointset computeDS (dectree* t, int much, int a, int ac){
+	pointset p;
+	p.size=0;
+	p.members=(int*)malloc((t->c.na)*sizeof(int));
+
+	if ((t->left==NULL)&&(t->left==NULL)&&(much==1)){
+		p.size++;
+		p.members[p.size-1]=t->c.tc[0];
+	}
+
+	else if (much!=0){
+
+		pastabox pbleft = t->c.box[a*t->c.lracompcard+ac];
 		pasta p1 = pbleft.inleft;
 		pasta p2 = pbleft.inright;
 		pointset pointleft = p1.where;
 		pointset pointright = p2.where;
-		pointset complem = t->c1.lracomp[acleft];
+		pointset complem = t->c.lracomp[ac];
 
-		int anextleft=0;
-		int acnextleft=0;
-		for (int i=0;i<t->left->c1.lracard;i++){
-			if (t->left->c1.lra[i].size==pointleft.size){
+		int anext=0;
+		int acnext=0;
+		for (int i=0;i<t->left->c.lracard;i++){
+			if (t->left->c.lra[i].size==pointleft.size){
 				int common = 0;
-				for (int j=0;j<t->left->c1.lra[i].size;j++){
+				for (int j=0;j<t->left->c.lra[i].size;j++){
 					for (int k=0;k<pointleft.size;k++){
-						if (t->left->c1.lra[i].members[j]==pointleft.members[k]){
+						if (t->left->c.lra[i].members[j]==pointleft.members[k]){
 							common++;
 							break;
 						}
 					}
 				}
 				if (common ==pointleft.size){
-					anextleft=i;
+					anext=i;
 					break;
 				}
 			}
@@ -1733,30 +1404,30 @@ pointset computeDS (dectree* t, int muchleft, int aleft, int acleft, int muchrig
 		}
 		pointset rac;
 		rac.size=0;
-		rac.members= (int*)malloc(t->left->c1.lracompcard*sizeof(int));
+		rac.members= (int*)malloc(t->left->c.lracompcard*sizeof(int));
 
 		for (int l=0; l<ua.size; l++){
 			int z=0;
 			int y=0;
 			int x=0;
-			for (int m=0; m<t->left->c1.nacomp;m++){
-				if (t->left->c1.pointtorepincomp[2*m]==ua.members[l]){
-					z=t->left->c1.pointtorepincomp[2*m+1];
+			for (int m=0; m<t->left->c.nacomp;m++){
+				if (t->left->c.pointtorepincomp[2*m]==ua.members[l]){
+					z=t->left->c.pointtorepincomp[2*m+1];
 					break;
 				}
 			} 
-			for (int m=0;m<t->left->c1.nrepincomp;m++){
-				if (t->left->c1.complementtc[m]==z){
+			for (int m=0;m<t->left->c.nrepincomp;m++){
+				if (t->left->c.complementtc[m]==z){
 					x=m;
 					break;
 				}
 			}
-			for (int m=0;m<t->left->c1.lracompcard;m++){
+			for (int m=0;m<t->left->c.lracompcard;m++){
 				int common=0;
-				if (t->left->c1.lracomp[m].size==rac.size){
+				if (t->left->c.lracomp[m].size==rac.size){
 					for (int n=0; n<rac.size; n++){
-						for (int o=0; o<t->left->c1.lracomp[m].size; o++){
-							if (t->left->c1.lracomp[m].members[o]==rac.members[n]){
+						for (int o=0; o<t->left->c.lracomp[m].size; o++){
+							if (t->left->c.lracomp[m].members[o]==rac.members[n]){
 								common++;
 								break;
 							}
@@ -1768,42 +1439,42 @@ pointset computeDS (dectree* t, int muchleft, int aleft, int acleft, int muchrig
 					}
 				}
 			}
-			rac = t->left->c1.mcomp[y*t->left->c1.nrepincomp+x];
+			rac = t->left->c.mcomp[y*t->left->c.nrepincomp+x];
 		}
 
-		for (int i=0;i<t->left->c1.lracompcard;i++){
-			if (t->left->c1.lracomp[i].size==rac.size){
+		for (int i=0;i<t->left->c.lracompcard;i++){
+			if (t->left->c.lracomp[i].size==rac.size){
 				int common = 0;
-				for (int j=0;j<t->left->c1.lracomp[i].size;j++){
+				for (int j=0;j<t->left->c.lracomp[i].size;j++){
 					for (int k=0;k<rac.size;k++){
-						if (t->left->c1.lracomp[i].members[j]==rac.members[k]){
+						if (t->left->c.lracomp[i].members[j]==rac.members[k]){
 							common++;
 							break;
 						}
 					}
 				}
 				if (common ==rac.size){
-					acnextleft=i;
+					acnext=i;
 					break;
 				}
 			}
 		}
 
-		int bnextleft=0;
-		int bcnextleft=0;
-		for (int i=0;i<t->left->c2.lracard;i++){
-			if (t->left->c2.lra[i].size==pointright.size){
+		int bnext=0;
+		int bcnext=0;
+		for (int i=0;i<t->right->c.lracard;i++){
+			if (t->right->c.lra[i].size==pointright.size){
 				int common = 0;
-				for (int j=0;j<t->left->c2.lra[i].size;j++){
+				for (int j=0;j<t->right->c.lra[i].size;j++){
 					for (int k=0;k<pointright.size;k++){
-						if (t->left->c2.lra[i].members[j]==pointright.members[k]){
+						if (t->right->c.lra[i].members[j]==pointright.members[k]){
 							common++;
 							break;
 						}
 					}
 				}
 				if (common ==pointright.size){
-					bnextleft=i;
+					bnext=i;
 					break;
 				}
 			}
@@ -1829,30 +1500,30 @@ pointset computeDS (dectree* t, int muchleft, int aleft, int acleft, int muchrig
 		}
 		pointset rbc;
 		rbc.size=0;
-		rbc.members= (int*)malloc(t->left->c2.lracompcard*sizeof(int));
+		rbc.members= (int*)malloc(t->right->c.lracompcard*sizeof(int));
 
 		for (int l=0; l<ub.size; l++){
 			int z=0;
 			int y=0;
 			int x=0;
-			for (int m=0; m<t->left->c2.nacomp;m++){
-				if (t->left->c2.pointtorepincomp[2*m]==ub.members[l]){
-					z=t->left->c2.pointtorepincomp[2*m+1];
+			for (int m=0; m<t->right->c.nacomp;m++){
+				if (t->right->c.pointtorepincomp[2*m]==ub.members[l]){
+					z=t->right->c.pointtorepincomp[2*m+1];
 					break;
 				}
 			} 
-			for (int m=0;m<t->left->c2.nrepincomp;m++){
-				if (t->left->c2.complementtc[m]==z){
+			for (int m=0;m<t->right->c.nrepincomp;m++){
+				if (t->right->c.complementtc[m]==z){
 					x=m;
 					break;
 				}
 			}
-			for (int m=0;m<t->left->c2.lracompcard;m++){
+			for (int m=0;m<t->right->c.lracompcard;m++){
 				int common=0;
-				if (t->left->c2.lracomp[m].size==rbc.size){
+				if (t->right->c.lracomp[m].size==rbc.size){
 					for (int n=0; n<rbc.size; n++){
-						for (int o=0; o<t->left->c2.lracomp[m].size; o++){
-							if (t->left->c2.lracomp[m].members[o]==rbc.members[n]){
+						for (int o=0; o<t->right->c.lracomp[m].size; o++){
+							if (t->right->c.lracomp[m].members[o]==rbc.members[n]){
 								common++;
 								break;
 							}
@@ -1864,278 +1535,61 @@ pointset computeDS (dectree* t, int muchleft, int aleft, int acleft, int muchrig
 					}
 				}
 			}
-			rbc = t->left->c2.mcomp[y*t->left->c2.nrepincomp+x];
+			rbc = t->right->c.mcomp[y*t->right->c.nrepincomp+x];
 		}
 
-		for (int i=0;i<t->left->c2.lracompcard;i++){
-			if (t->left->c2.lracomp[i].size==rbc.size){
+		for (int i=0;i<t->right->c.lracompcard;i++){
+			if (t->right->c.lracomp[i].size==rbc.size){
 				int common = 0;
-				for (int j=0;j<t->left->c2.lracomp[i].size;j++){
+				for (int j=0;j<t->right->c.lracomp[i].size;j++){
 					for (int k=0;k<rbc.size;k++){
-						if (t->left->c2.lracomp[i].members[j]==rbc.members[k]){
+						if (t->right->c.lracomp[i].members[j]==rbc.members[k]){
 							common++;
 							break;
 						}
 					}
 				}
 				if (common ==rbc.size){
-					bcnextleft=i;
+					bcnext=i;
 					break;
 				}
 			}
 		}
-		pointset pleft;
-		pleft.size=0;
-		pleft.members= (int*)malloc((p1.howmany+p2.howmany)*sizeof(int));
-		pleft = computeDS (t->left, p1.howmany, anextleft, acnextleft, p2.howmany, bnextleft, bcnextleft);
-		for (int i=0; i<pleft.size; i++){
+		p = computeDS (t->left, p1.howmany, anext, acnext);
+		pointset ptmp;
+		ptmp.size= p2.howmany;
+		ptmp.members=(int*)malloc(p2.howmany*sizeof(int));
+		ptmp= computeDS(t->right, p2.howmany, bnext, bcnext);
+		for (int i=0; i<ptmp.size; i++){
 			p.size++;
-			p.members[p.size-1]=pleft.members[i];
+			p.members[p.size-1]=ptmp.members[i];
 		}
 	}
-
-	if ((t->right->left==NULL)&&(t->right->right==NULL)&&(muchright==1)){
-		p.size++;
-		p.members[p.size-1]=t->c2.tc[0];
-	}
-	else if (muchright!=0){
-		pastabox pbright = t->c2.box[bright*t->c2.lracompcard+bcright];
-		pasta p1 = pbright.inleft;
-		pasta p2 = pbright.inright;
-		pointset pointleft = p1.where;
-		pointset pointright = p2.where;
-		pointset complem = t->c2.lracomp[bcright];
-		int anextleft=0;
-		int acnextleft=0;
-		for (int i=0;i<t->right->c1.lracard;i++){
-			if (t->right->c1.lra[i].size==pointleft.size){
-				int common = 0;
-				for (int j=0;j<t->right->c1.lra[i].size;j++){
-					for (int k=0;k<pointleft.size;k++){
-						if (t->right->c1.lra[i].members[j]==pointleft.members[k]){
-							common++;
-							break;
-						}
-					}
-				}
-				if (common ==pointleft.size){
-					anextleft=i;
-					break;
-				}
-			}
-		}
-		pointset ua;
-		ua.size = pointright.size;
-		ua.members = (int*) malloc ((pointright.size+complem.size)*sizeof(int));
-		for (int l = 0; l<pointright.size;l++)
-			ua.members[l]=pointright.members[l];
-		for (int l=0; l<complem.size;l++){
-			int alreadyin = 0;
-			for (int m = 0; m<ua.size; m++){
-				if (ua.members[m]==complem.members[l]){
-					alreadyin = 1;
-					break;
-				}
-			}
-			if (alreadyin==0){
-				ua.size++;
-				ua.members[ua.size-1]=complem.members[l];
-			}
-		}
-
-		pointset rac;
-		rac.size=0;
-		rac.members= (int*)malloc(t->right->c1.lracompcard*sizeof(int));
-
-		for (int l=0; l<ua.size; l++){
-			int z=0;
-			int y=0;
-			int x=0;
-			for (int m=0; m<t->right->c1.nacomp;m++){
-				if (t->right->c1.pointtorepincomp[2*m]==ua.members[l]){
-					z=t->right->c1.pointtorepincomp[2*m+1];
-					break;
-				}
-			} 
-			for (int m=0;m<t->right->c1.nrepincomp;m++){
-				if (t->right->c1.complementtc[m]==z){
-					x=m;
-					break;
-				}
-			}
-			for (int m=0;m<t->right->c1.lracompcard;m++){
-				int common=0;
-				if (t->right->c1.lracomp[m].size==rac.size){
-					for (int n=0; n<rac.size; n++){
-						for (int o=0; o<t->right->c1.lracomp[m].size; o++){
-							if (t->right->c1.lracomp[m].members[o]==rac.members[n]){
-								common++;
-								break;
-							}
-						}
-					}
-					if (common==rac.size){
-						y = m;
-						break;
-					}
-				}
-			}
-			rac = t->right->c1.mcomp[y*t->right->c1.nrepincomp+x];
-		}
-		for (int i=0;i<t->right->c1.lracompcard;i++){
-			if (t->right->c1.lracomp[i].size==rac.size){
-				int common = 0;
-				for (int j=0;j<t->right->c1.lracomp[i].size;j++){
-					for (int k=0;k<rac.size;k++){
-						if (t->right->c1.lracomp[i].members[j]==rac.members[k]){
-							common++;
-							break;
-						}
-					}
-				}
-				if (common ==rac.size){
-					acnextleft=i;
-					break;
-				}
-			}
-		}
-
-		int bnextleft=0;
-		int bcnextleft=0;
-		for (int i=0;i<t->right->c2.lracard;i++){
-			if (t->right->c2.lra[i].size==pointright.size){
-				int common = 0;
-				for (int j=0;j<t->right->c2.lra[i].size;j++){
-					for (int k=0;k<pointright.size;k++){
-						if (t->right->c2.lra[i].members[j]==pointright.members[k]){
-							common++;
-							break;
-						}
-					}
-				}
-				if (common ==pointright.size){
-					bnextleft=i;
-					break;
-				}
-			}
-		}
-
-		pointset ub;
-		ub.size = pointleft.size;
-		ub.members = (int*) malloc ((pointleft.size+complem.size)*sizeof(int));
-		for (int l = 0; l<pointleft.size;l++)
-			ub.members[l]=pointleft.members[l];
-		for (int l=0; l<complem.size;l++){
-			int alreadyin = 0;
-			for (int m = 0; m<ub.size; m++){
-				if (ub.members[m]==complem.members[l]){
-					alreadyin = 1;
-					break;
-				}
-			}
-			if (alreadyin==0){
-				ub.size++;
-				ub.members[ub.size-1]=complem.members[l];
-			}
-		}
-		pointset rbc;
-		rbc.size=0;
-		rbc.members= (int*)malloc(t->right->c2.lracompcard*sizeof(int));
-
-		for (int l=0; l<ub.size; l++){
-			int z=0;
-			int y=0;
-			int x=0;
-			for (int m=0; m<t->right->c2.nacomp;m++){
-				if (t->right->c2.pointtorepincomp[2*m]==ub.members[l]){
-					z=t->right->c2.pointtorepincomp[2*m+1];
-					break;
-				}
-			} 
-			for (int m=0;m<t->right->c2.nrepincomp;m++){
-				if (t->right->c2.complementtc[m]==z){
-					x=m;
-					break;
-				}
-			}
-			for (int m=0;m<t->right->c2.lracompcard;m++){
-				int common=0;
-				if (t->right->c2.lracomp[m].size==rbc.size){
-					for (int n=0; n<rbc.size; n++){
-						for (int o=0; o<t->right->c2.lracomp[m].size; o++){
-							if (t->right->c2.lracomp[m].members[o]==rbc.members[n]){
-								common++;
-								break;
-							}
-						}
-					}
-					if (common==rbc.size){
-						y = m;
-						break;
-					}
-				}
-			}
-			rbc = t->right->c2.mcomp[y*t->right->c2.nrepincomp+x];
-		}
-
-		for (int i=0;i<t->right->c2.lracompcard;i++){
-			if (t->right->c2.lracomp[i].size==rbc.size){
-				int common = 0;
-				for (int j=0;j<t->right->c2.lracomp[i].size;j++){
-					for (int k=0;k<rbc.size;k++){
-						if (t->right->c2.lracomp[i].members[j]==rbc.members[k]){
-							common++;
-							break;
-						}
-					}
-				}
-				if (common ==rbc.size){
-					bcnextleft=i;
-					break;
-				}
-			}
-		}
-		pointset pright;
-		pright.size=0;
-		pright.members= (int*)malloc((p1.howmany+p2.howmany)*sizeof(int));
-		pright = computeDS (t->right, p1.howmany, anextleft, acnextleft, p2.howmany, bnextleft, bcnextleft);
-
-		for (int i=0; i<pright.size; i++){
-			p.size++;
-			p.members[p.size-1]=pright.members[i];
-		}		
-	}
-
 	return p;
 }
 
-int getBW (dectree t, graph g){
+int getBW (dectree* t, graph* g){
 	int bwmax=-1;
-	if ((t.right==NULL)||(t.left==NULL))
-		bwmax=-1;
+	if ((t->right==NULL)||(t->left==NULL))
+		bwmax=2;
 	else {
-		cutdata c1 = cutThatTree (&g, &t, 0);
+		t->c = cutThatTree (g, t);
 
-		firstpreprocess (&g,&c1);
-		secondpreprocess (&c1, &g);
+		firstpreprocess (g,&(t->c));
+		secondpreprocess (&(t->c), g);
 
-		cutdata c2 = cutThatTree (&g, &t, 1);
-
-		firstpreprocess (&g,&c2);
-		secondpreprocess (&c2, &g);
 		
-		int p  = getBW(*(t.left), g);
-		int q  = getBW(*(t.right), g);
+		int p  = getBW(t->left, g);
+		int q  = getBW(t->right, g);
 		
 
 		if (p>bwmax)
 			bwmax=p;
 		if (q>bwmax)
 			bwmax=q;
-		if (c1.lracard>bwmax)
-			bwmax=c1.lracard;
-		if (c2.lracard>bwmax)
-			bwmax=c2.lracard;
+		if (t->c.lracard>bwmax)
+			bwmax=t->c.lracard;
+
 	}
 	return bwmax;
 }

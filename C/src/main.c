@@ -28,11 +28,7 @@ int main (int argc, char** argv){
 	size = preprocessingsolopoints (g, sol, 180);
 	int sizeinit=size;
 	//graph g = loadgraphformat2(argv[1]);
-	for (int i=0; i<g->size; i++){
-		for (int j=0; j<g->size; j++)
-			printf("%d ",g->matrix[i*g->size+j]);
-		printf("\n");
-	}
+
 	printf("g.size=%d\n", g->size);
 	printf("number of edges=%d\n", getEdgeNumber(*g));
 	//dectree t = loadtree("tiefighter.tree");

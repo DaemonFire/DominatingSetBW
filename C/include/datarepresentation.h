@@ -55,9 +55,8 @@ typedef struct dectree {
 	struct dectree *left;
 	struct dectree *right;
 	int label;
-	cutdata c1;
-	cutdata c2;
-	int live;
+	cutdata c;
+	int computed;
 } dectree; 
 
 typedef struct graph {

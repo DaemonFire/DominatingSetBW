@@ -2,8 +2,11 @@
 #define _ALGORITHMS_
 #include "../include/datarepresentation.h"
 
+int getnumberofnodes(dectree* t);
 
-cutdata cutThatTree (graph* g, dectree* t, int choiceofson);
+int fillThevoid (dectree* t, graph* g);
+
+cutdata cutThatTree (graph* g, dectree* t);
 
 int firstpreprocess(graph* g,  cutdata* c);
 
@@ -19,8 +22,8 @@ pointset toplevelalgorithm (dectree* t, graph* g);
 
 int stepalgorithm (dectree* t, graph* g);
 
-pointset computeDS (dectree* t, int muchleft, int aleft, int acleft, int muchright, int bright, int bcright);
+pointset computeDS (dectree* t, int much, int a, int ac);
 
-int getBW (dectree t, graph g);
+int getBW (dectree* t, graph* g);
 
 #endif

@@ -56,12 +56,8 @@ int computeconnexcomposants (graph* g, graph** components, int threshold){
 	for (int i=0; i<g-> size; i++)
 		computed[i]=-1;
 	int i=0;
-	printf("%d\n", g->size);
 	while (i<g->size){
-		for (int j=0; j<g->size; j++){
-			printf("%d ", computed[j]);
-		}
-		printf("\n");
+
 		int needtogoback=0;
 		if (computed[i]==-1){
 			computed[i]=which;
@@ -104,9 +100,7 @@ int computeconnexcomposants (graph* g, graph** components, int threshold){
 			}
 			i--;
 		}
-		for (int j=0; j<g->size; j++)
-			printf("%d ",computed[j]);
-		printf("\n");
+
 	}
 
 	for (int i=0; i<which; i++){
