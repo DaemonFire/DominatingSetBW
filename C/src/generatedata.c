@@ -10,6 +10,46 @@
 #include <sys/types.h>
 
 
+int preprocessingsolopoints (graph* g, int* sol, int threshold){
+	int nsolo=0;	
+	for (int i=0; i<g->size; i++){
+		int solo = 1;
+		for (int j=0; j<g->size; j++){
+			if (g->matrix[i*g->size+j]==1){
+				solo=0;
+				break;
+			}
+		}
+		if (solo==1){
+			sol[nsolo]=i;
+			nsolo++;
+		}
+	}
+	graph* h= (graph*)malloc(sizeof(graph));
+	h->size=g->size-nsolo;
+	h->matrix=(int*)malloc((g->size-nsolo)*(g->size-nsolo)*sizeof(int));
+	h->pos=(int*)malloc(2*(g->size-nsolo)*sizeof(int));
+	int cursor= 0;
+	for (int i=0; i<g->size; i++){
+		if (cursor<nsolo){
+			if (i==sol[cursor]){
+				cursor++;
+			}
+			else{
+				h->pos[2*(i-cursor)]=g->pos[2*i];
+				h->pos[2*(i-cursor)+1]=g->pos[2*i+1];
+			}
+		}
+		else {
+			h->pos[2*(i-cursor)]=g->pos[2*i];
+			h->pos[2*(i-cursor)+1]=g->pos[2*i+1];
+		}
+	}
+	generateEdges (*h, threshold);
+	*g=*h;
+	return nsolo;
+}
+
 graph generategraph (int nbpoint, int xrange, int yrange, int threshold){
 
 	srand (time(NULL));
@@ -68,16 +108,15 @@ graph loadgraph (char* path, int threshold) {
 		fprintf(stderr,"Error fopen");
 		perror("fopen");
 	}
-	g.pos = (int*)malloc(3*g.size*sizeof(int));
+	g.pos = (int*)malloc(2*g.size*sizeof(int));
 	g.matrix = (int*)malloc(g.size*g.size*sizeof(int));
 
 	for (int i=0; i<g.size; i++){
 		fgets(buffer,80,f);
 		int a = atoi(subtoken=strtok(buffer," "));
 		int b = atoi(subtoken=strtok(NULL," "));
-		g.pos[3*i]=i;
-		g.pos[3*i+1]=a;
-		g.pos[3*i+2]=b;
+		g.pos[2*i]=a;
+		g.pos[2*i+1]=b;
 	}
 	fclose(f);
 	generateEdges(g,threshold);
@@ -89,7 +128,7 @@ void generateEdges (graph g, int threshold){
 
 	for (int i = 0; i<g.size; i++) {
 		for (int j= 0; j<i; j++) {
-			if ((g.pos[3*i+1]-g.pos[3*j+1])*(g.pos[3*i+1]-g.pos[3*j+1])+(g.pos[3*i+2]-g.pos[3*j+2])*(g.pos[3*i+2]-g.pos[3*j+2])<=(threshold*threshold)){
+			if ((g.pos[2*i]-g.pos[2*j])*(g.pos[2*i]-g.pos[2*j])+(g.pos[2*i+1]-g.pos[2*j+1])*(g.pos[2*i+1]-g.pos[2*j+1])<=(threshold*threshold)){
 				g.matrix[g.size*i+j]=1;
 				g.matrix[g.size*j+i]=1;
 			}

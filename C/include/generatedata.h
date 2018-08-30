@@ -4,6 +4,8 @@
 #include "../include/datarepresentation.h"
 #include <stdio.h>
 
+int preprocessingsolopoints (graph* g, int* sol, int threshold);
+
 graph generategraph (int nbpoint, int xrange, int yrange, int threshold);
 
 int getEdgeNumber(graph g);
