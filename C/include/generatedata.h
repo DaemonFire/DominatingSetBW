@@ -6,6 +6,8 @@
 
 int preprocessingsolopoints (graph* g, int* sol, int threshold);
 
+int computeconnexcomposants (graph* g, graph** components, int threshold);
+
 graph generategraph (int nbpoint, int xrange, int yrange, int threshold);
 
 int getEdgeNumber(graph g);

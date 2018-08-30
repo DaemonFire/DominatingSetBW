@@ -50,6 +50,89 @@ int preprocessingsolopoints (graph* g, int* sol, int threshold){
 	return nsolo;
 }
 
+int computeconnexcomposants (graph* g, graph** components, int threshold){
+	int which = 0;
+	int* computed = (int*)malloc(g->size*sizeof(int));
+	for (int i=0; i<g-> size; i++)
+		computed[i]=-1;
+	int i=0;
+	printf("%d\n", g->size);
+	while (i<g->size){
+		for (int j=0; j<g->size; j++){
+			printf("%d ", computed[j]);
+		}
+		printf("\n");
+		int needtogoback=0;
+		if (computed[i]==-1){
+			computed[i]=which;
+			which++;
+		}
+		for (int j=0; j<g->size; j++){
+			if (g->matrix[i*g->size+j]==1){
+				if (computed[j]==-1){
+					computed[j]=computed[i];
+				}
+				else{
+					if (computed[j]>=computed[i])
+						computed[j]=computed[i];
+					else{
+						computed[i]=computed[j];
+						needtogoback=1;
+						break;
+					}
+				}
+
+			}
+
+		}
+		if (needtogoback==0)
+			i++;
+	}
+	for (int i=0; i<which; i++){
+		int number=0;
+		for (int j=0; j<g->size; j++){
+			if (computed[j]==i){
+				number++;
+				break;
+			}
+		}
+		if (number==0){
+			which--;
+			for (int j=0; j<g->size; j++){
+				if (computed[j]>i)
+					computed[j]--;
+			}
+			i--;
+		}
+		for (int j=0; j<g->size; j++)
+			printf("%d ",computed[j]);
+		printf("\n");
+	}
+
+	for (int i=0; i<which; i++){
+		components[i]=(graph*)malloc(sizeof(graph));
+		components[i]->size=0;
+		for (int j=0; j<g->size; j++){
+			if (computed[j]==i)
+				components[i]->size++;
+		}
+		components[i]->matrix=(int*)malloc(components[i]->size*components[i]->size*sizeof(int));
+		components[i]->pos=(int*)malloc(2*components[i]->size*sizeof(int));
+		int cursor=0;
+		for (int j=0; j<g->size; j++){
+			if (cursor>=components[i]->size)
+				break;
+			if (computed[j]==i){
+				components[i]->pos[2*cursor]=g->pos[2*j];
+				components[i]->pos[2*cursor+1]=g->pos[2*j+1];
+				cursor++;
+			}
+		}
+		generateEdges(*components[i], threshold);
+	}
+	return which;
+}
+
 graph generategraph (int nbpoint, int xrange, int yrange, int threshold){
 
 	srand (time(NULL));
