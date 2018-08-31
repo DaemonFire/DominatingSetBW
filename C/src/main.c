@@ -15,17 +15,18 @@
 #include <time.h>
 
 int main (int argc, char** argv){
-	if (argc!=2)
+	if (argc!=3)
 		return EXIT_FAILURE;
 	graph* g = (graph*)malloc(sizeof(graph));
-	*g =loadgraph(argv[1], 180);
+	int threshold = atoi(argv[2]);
+	*g =loadgraph(argv[1], threshold);
 	graph *h = (graph*)malloc(sizeof(graph));
 	*h = *g;
 	int* sol = (int*)malloc(g->size*sizeof(int));
 	int size=0;
 
 
-	size = preprocessingsolopoints (g, sol, 180);
+	size = preprocessingsolopoints (g, sol, threshold);
 	int sizeinit=size;
 	//graph g = loadgraphformat2(argv[1]);
 
@@ -34,22 +35,23 @@ int main (int argc, char** argv){
 	//dectree t = loadtree("tiefighter.tree");
 	//dectree *t = generateTree(p,g,0);
 	graph** components = (graph**)malloc(g->size*sizeof(graph*));
-	int ncomp = computeconnexcomposants (g, components, 180);
+	int ncomp = computeconnexcomposants (g, components, threshold);
 	struct timeval stop, start;
 	gettimeofday(&start, NULL);
 	for (int i=0; i<ncomp; i++){
 		dectree *t=generateTreeBW (*components[i]);
 		pointset x;
-		if (components[i]->size>0)
+		if (components[i]->size>0){
 			x = toplevelalgorithm (t, components[i]);
+		}	
 		else
 			x.size=0;
 	
 		if (x.size<0)
 			x.size=0;
-
-		for (int i=0; i<x.size; i++)
-			sol[size+i]=x.members[i];
+		
+		for (int j=0; j<x.size; j++)
+			sol[size+j]=x.members[j];
 		size+=x.size;
 		components[i]->sizeset=x.size;
 		components[i]->domset=x.members;
@@ -57,10 +59,14 @@ int main (int argc, char** argv){
 	for (int i=0; i<sizeinit; i++){
 		printf("(%d, %d),  ", h->pos[2*sol[i]], h->pos[2*sol[i]+1]);
 	}
+	printf("|");
+	int cursor =sizeinit;
 	for (int i=0; i<ncomp; i++){
 		for (int j=0; j<components[i]->sizeset; j++){
-			printf("(%d, %d), ", components[i]->pos[2*sol[j]], g->pos[2*sol[j]+1]);
+			printf("(%d, %d), ", components[i]->pos[2*components[i]->domset[j]], components[i]->pos[2*components[i]->domset[j]+1]);
 		}
+		cursor+=components[i]->sizeset;
+		printf("|");
 	}
 	printf("\n");
 	printf("There are %d composants\n", ncomp);
@@ -70,9 +76,9 @@ int main (int argc, char** argv){
 	//generatePlotFile (*t, g);
 
 
-	int timeToSet=stop.tv_usec - start.tv_usec;
+	long timeToSet=1000000*(stop.tv_sec-start.tv_sec)+stop.tv_usec - start.tv_usec;
 
-	printf("Time elapsed for set=%d\n",timeToSet);
+	printf("Time elapsed for set=%ld\n",timeToSet);
 
 
 	return EXIT_SUCCESS;
