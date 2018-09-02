@@ -633,16 +633,14 @@ int secondpreprocess (cutdata* c, graph* g){
 							}
 						}
 					}
-					printf("rprime=");
-					for (int l=0; l<rprime.size; l++)
-						printf("%d, ", rprime.members[l]);
-					printf("\n");	
+					
 					if (alreadyin == 0) {
 						c->lracompcard++;
-						c->lracomp[c->lracompcard-1].size=rprime.size;
+						c->lracomp[c->lracompcard-1]=rprime;
+						/*c->lracomp[c->lracompcard-1].size=rprime.size;
 						c->lracomp[c->lracompcard-1].members=(int*)malloc(rprime.size*sizeof(int));
 						for (int k=0; k<rprime.size; k++)
-							c->lracomp[c->lracompcard-1].members[k]=rprime.members[k];
+							c->lracomp[c->lracompcard-1].members[k]=rprime.members[k];*/
 						sizeofnext++;
 						nextLevel[sizeofnext-1].size=rprime.size;
 						nextLevel[sizeofnext-1].members=(int*)malloc(rprime.size*sizeof(int));
@@ -655,10 +653,7 @@ int secondpreprocess (cutdata* c, graph* g){
 							c->lnracomp[c->lnracompcard-1].members[k]=n.members[k];
 						c->assoccomp[c->lracompcard*2-2]=rprime;
 						c->assoccomp[c->lracompcard*2-1]=n;
-						printf("c->lracomp[c->lracompcard-1]=");
-						for (int k=0; k<c->lracomp[c->lracompcard-1].size; k++)
-							printf("%d, ",c->lracomp[c->lracompcard-1].members[k]);
-						printf("\n");
+						
 					}
 				}
 			}			
@@ -985,7 +980,7 @@ pointset toplevelalgorithm (dectree* t, graph* g){
 			}			
 		}
 	}
-	printf("composant=");
+/*	printf("composant=");
 	for (int i=0; i<g->size; i++)
 		printf("(%d, %d), ",g->pos[2*i], g->pos[2*i+1]);
 	printf("\n");
@@ -1000,7 +995,7 @@ pointset toplevelalgorithm (dectree* t, graph* g){
 		for (int j=0; j<c2.lracompcard; j++)
 			printf("%d ", c2.tab[i*c2.lracompcard+j]);
 		printf("\n");
-	}
+	}*/
 	pointset sol;
 	sol.size=c1.tab[amax*c1.lracompcard+acmax];
 	sol.members= (int*)malloc(size*sizeof(int));
@@ -1109,10 +1104,6 @@ int stepalgorithm (dectree* t, graph* g){
 						}
 						rac = t->left->c.mcomp[y*t->left->c.nrepincomp+x];
 					}
-					printf("rac=");
-					for (int m=0; m<rac.size; m++)
-						printf("%d, ",rac.members[m]);
-					printf("\n");
 					
 					pointset ub;
 					ub.size = ra.size;
@@ -1171,10 +1162,7 @@ int stepalgorithm (dectree* t, graph* g){
 						}
 						rbc = t->right->c.mcomp[y*t->right->c.nrepincomp+x];
 					}
-					printf("rbc=");
-					for (int m=0; m<rbc.size; m++)
-						printf("%d, ",rbc.members[m]);
-					printf("\n");
+
 					pointset uw;
 					uw.size = ra.size;
 					uw.members = (int*) malloc ((ra.size+rb.size)*sizeof(int));
@@ -1308,7 +1296,6 @@ int stepalgorithm (dectree* t, graph* g){
 									}
 								}
 							}
-							printf("commond=%d, rac.size=%d\n",common, rac.size);
 							if (common==rac.size){
 								acin=l;
 								break;
@@ -1353,7 +1340,7 @@ int stepalgorithm (dectree* t, graph* g){
 							}
 						}
 					}
-					printf("ain=%d, acin=%d, bin=%d, bcin=%d, win=%d, wcin=%d, sizea=%d, sizeb=%d, sizew=%d\n", ain, acin, bin, bcin, win, wcin, t->left->c.tab[ain*t->left->c.lracompcard+acin], t->right->c.tab[bin*t->right->c.lracompcard+bcin], t->c.tab[win*t->c.lracompcard+wcin]);								
+					//printf("ain=%d, acin=%d, bin=%d, bcin=%d, win=%d, wcin=%d, sizea=%d, sizeb=%d, sizew=%d\n", ain, acin, bin, bcin, win, wcin, t->left->c.tab[ain*t->left->c.lracompcard+acin], t->right->c.tab[bin*t->right->c.lracompcard+bcin], t->c.tab[win*t->c.lracompcard+wcin]);								
 					if ((t->left->c.tab[ain*t->left->c.lracompcard+acin]!=-1)&&(t->right->c.tab[bin*t->right->c.lracompcard+bcin]!=-1)){
 						if ((t->c.tab[win*t->c.lracompcard+wcin]==-1)||(t->c.tab[win*t->c.lracompcard+wcin]>t->left->c.tab[ain*t->left->c.lracompcard+acin]+t->right->c.tab[bin*t->right->c.lracompcard+bcin])){
 			
@@ -1389,7 +1376,7 @@ int stepalgorithm (dectree* t, graph* g){
 	}
 	t->computed=1;
 	tocompute--;
-	printf("a=");
+/*	printf("a=");
 	for (int i=0; i<t->c.na; i++)
 		printf("%d, ",t->c.a[i]);
 	printf("\n");
@@ -1429,7 +1416,7 @@ int stepalgorithm (dectree* t, graph* g){
 		for (int j=0; j<t->c.lracompcard; j++)
 			printf("%d ", t->c.tab[i*t->c.lracompcard+j]);
 		printf("\n");
-	}
+	}*/
 	return EXIT_SUCCESS;
 
 }

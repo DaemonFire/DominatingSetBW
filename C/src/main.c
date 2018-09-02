@@ -24,8 +24,6 @@ int main (int argc, char** argv){
 	*h = *g;
 	int* sol = (int*)malloc(g->size*sizeof(int));
 	int size=0;
-
-
 	size = preprocessingsolopoints (g, sol, threshold);
 	int sizeinit=size;
 	//graph g = loadgraphformat2(argv[1]);
