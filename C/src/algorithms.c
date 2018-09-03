@@ -1676,23 +1676,26 @@ int getBW (dectree* t, graph* g){
 	if ((t==NULL)||(t->right==NULL)||(t->left==NULL))
 		bwmax=2;
 	else {
+		int n = getnumberofnodes (t)-1;
+		tocompute=0;
+		int* sizes = (int*)malloc(n*sizeof(int));
+		nodestocompute=(dectree**)malloc(n*sizeof(dectree*));
+		fillThevoid(t->right,g);	
+		fillThevoid(t->left,g);
 		
-		t->c = cutThatTree (g, t);
+		for (int i=0; i<n; i++){
+			nodestocompute[i]->c = cutThatTree (g, nodestocompute[i]);
 
-		firstpreprocess (g,&(t->c));
-		secondpreprocess (&(t->c), g);
-
+			firstpreprocess (g,&(nodestocompute[i]->c));
+			secondpreprocess (&(nodestocompute[i]->c), g);
+			sizes[i]=nodestocompute[i]->c.lracard;
 		
-		int p  = getBW(t->left, g);
-		int q  = getBW(t->right, g);
-		
-
-		if (p>bwmax)
-			bwmax=p;
-		if (q>bwmax)
-			bwmax=q;
-		if (t->c.lracard>bwmax)
-			bwmax=t->c.lracard;
+		}
+		bwmax=sizes[0];
+		for (int i=1; i<n; i++){
+			if (sizes[i]>bwmax)
+				bwmax = sizes[i];
+		}
 
 	}
 	return bwmax;
