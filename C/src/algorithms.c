@@ -531,8 +531,14 @@ int secondpreprocess (cutdata* c, graph* g){
 						c->lnra[c->lnracard-1].members=(int*)malloc(n.size*sizeof(int));
 						for (int k=0; k<n.size; k++)
 							c->lnra[c->lnracard-1].members[k]=n.members[k];
-						c->assoc[c->lracard*2-2]=rprime;
-						c->assoc[c->lracard*2-1]=n;
+						c->assoc[c->lracard*2-2].size=rprime.size;
+						c->assoc[c->lracard*2-2].members=(int*)malloc(rprime.size*sizeof(int));
+						for (int k=0; k<rprime.size; k++)
+							c->assoc[c->lracard*2-2].members[k]=rprime.members[k];
+						c->assoc[c->lracard*2-1].size=n.size;
+						c->assoc[c->lracard*2-1].members=(int*)malloc(n.size*sizeof(int));
+						for (int k=0; k<n.size; k++)
+							c->assoc[c->lracard*2-1].members[k]=n.members[k];
 					}
 				}
 			}			
@@ -1340,7 +1346,7 @@ int stepalgorithm (dectree* t, graph* g){
 							}
 						}
 					}
-					//printf("ain=%d, acin=%d, bin=%d, bcin=%d, win=%d, wcin=%d, sizea=%d, sizeb=%d, sizew=%d\n", ain, acin, bin, bcin, win, wcin, t->left->c.tab[ain*t->left->c.lracompcard+acin], t->right->c.tab[bin*t->right->c.lracompcard+bcin], t->c.tab[win*t->c.lracompcard+wcin]);								
+		//			printf("ain=%d, acin=%d, bin=%d, bcin=%d, win=%d, wcin=%d, sizea=%d, sizeb=%d, sizew=%d\n", ain, acin, bin, bcin, win, wcin, t->left->c.tab[ain*t->left->c.lracompcard+acin], t->right->c.tab[bin*t->right->c.lracompcard+bcin], t->c.tab[win*t->c.lracompcard+wcin]);								
 					if ((t->left->c.tab[ain*t->left->c.lracompcard+acin]!=-1)&&(t->right->c.tab[bin*t->right->c.lracompcard+bcin]!=-1)){
 						if ((t->c.tab[win*t->c.lracompcard+wcin]==-1)||(t->c.tab[win*t->c.lracompcard+wcin]>t->left->c.tab[ain*t->left->c.lracompcard+acin]+t->right->c.tab[bin*t->right->c.lracompcard+bcin])){
 			
@@ -1386,6 +1392,9 @@ int stepalgorithm (dectree* t, graph* g){
 			printf("%d ",t->c.matrixrevisited[i*t->c.nacomp+j]);
 		printf("\n");
 	}
+	printf("pointtorep=\n");
+	for (int i=0; i<t->c.na; i++)
+		printf("%d -> %d\n", t->c.pointtorep[2*i], t->c.pointtorep[2*i+1]);
 	printf("pointtorepincomp=\n");
 	for (int i=0; i<t->c.nacomp; i++)
 		printf("%d -> %d\n",t->c.pointtorepincomp[2*i], t->c.pointtorepincomp[2*i+1]);
@@ -1399,6 +1408,16 @@ int stepalgorithm (dectree* t, graph* g){
 	for (int i=0; i<t->c.lracompcard; i++){
 		for (int j=0; j<t->c.lracomp[i].size; j++)
 			printf("%d ",t->c.lracomp[i].members[j]);
+		printf("\n");
+	}
+	printf("m=\n");
+	for (int i=0; i<t->c.lracard;i++){
+		for (int j=0; j<t->c.nrep; j++){
+			printf("(");
+			for (int k=0; k<t->c.m[i*t->c.nrep+j].size; k++)
+				printf("%d, ", t->c.m[i*t->c.nrep+j].members[k]);
+			printf(") ");
+		}
 		printf("\n");
 	}
 	printf("mcomp=\n");
@@ -1657,6 +1676,7 @@ int getBW (dectree* t, graph* g){
 	if ((t==NULL)||(t->right==NULL)||(t->left==NULL))
 		bwmax=2;
 	else {
+		
 		t->c = cutThatTree (g, t);
 
 		firstpreprocess (g,&(t->c));
