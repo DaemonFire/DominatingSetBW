@@ -67,8 +67,14 @@ int computeconnexcomposants (graph* g, graph** components, int threshold){
 					computed[j]=computed[i];
 				}
 				else{
-					if (computed[j]>=computed[i])
+					if (computed[j]>=computed[i]){
+						int previous = computed[j];
 						computed[j]=computed[i];
+						for (int k=0; k<g->size; k++){
+							if (computed[k]==previous)
+								computed[k]=computed[i];
+						}	
+					}
 					else{
 						int previous = computed[i];
 						int new = computed[j];

@@ -15,7 +15,8 @@
 #include <time.h>
 
 int main (int argc, char** argv){
-	if (argc!=3)
+	printf(" ===== %s =====\n", argv[1]);
+	if (argc!=4)
 		return EXIT_FAILURE;
 	graph* g = (graph*)malloc(sizeof(graph));
 	int threshold = atoi(argv[2]);
@@ -35,12 +36,21 @@ int main (int argc, char** argv){
 	graph** components = (graph**)malloc(g->size*sizeof(graph*));
 	int ncomp = computeconnexcomposants (g, components, threshold);
 	struct timeval stop, start;
-	gettimeofday(&start, NULL);
+	long timeToSet = 0;
 	for (int i=0; i<ncomp; i++){
-		dectree *t=generateTreeBW (*components[i]);
+		//printf("composant of size %d\n",components[i]->size);
+		dectree *t;
+		if (argv[3][0]=='n')
+			t=generateTreeBW (*components[i]);
+		else
+			t=generateTreeBWcrude (*components[i], atoi(argv[3]));
 		pointset x;
 		if (components[i]->size>0){
+			gettimeofday(&start, NULL);
 			x = toplevelalgorithm (t, components[i]);
+			gettimeofday(&stop, NULL);
+			timeToSet+=1000000*(stop.tv_sec-start.tv_sec)+stop.tv_usec - start.tv_usec;
+			printf("Time for this composant is %ld\n", 1000000*(stop.tv_sec-start.tv_sec)+stop.tv_usec - start.tv_usec);
 		}	
 		else
 			x.size=0;
@@ -68,16 +78,11 @@ int main (int argc, char** argv){
 	}
 	printf("\n");
 	printf("There are %d composants\n", ncomp);
-	gettimeofday(&stop, NULL);
 	printf("Minimum Dominating Set is of size %d\n",size);
 	//printf("\n");
 	//generatePlotFile (*t, g);
-
-
-	long timeToSet=1000000*(stop.tv_sec-start.tv_sec)+stop.tv_usec - start.tv_usec;
-
 	printf("Time elapsed for set=%ld\n",timeToSet);
-
+	printf("\n\n\n");
 
 	return EXIT_SUCCESS;
 }
